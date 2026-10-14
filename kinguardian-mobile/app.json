@@ -1,0 +1,51 @@
+{
+  "expo": {
+    "name": "KinGuardian",
+    "slug": "kinguardian-prototype",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "scheme": "kinguardian",
+    "icon": "./assets/icon.png",
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "com.kinguardian.mobile",
+      "usesCleartextTraffic": true,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#2a14b4"
+      },
+      "permissions": [
+        "android.permission.INTERNET",
+        "android.permission.ACCESS_NETWORK_STATE",
+        "android.permission.ACTIVITY_RECOGNITION",
+        "android.permission.BODY_SENSORS",
+        "android.permission.health.READ_STEPS",
+        "android.permission.health.WRITE_STEPS",
+        "android.permission.health.READ_HEART_RATE",
+        "android.permission.health.WRITE_HEART_RATE",
+        "android.permission.health.READ_SLEEP",
+        "android.permission.health.WRITE_SLEEP",
+        "android.permission.health.READ_TOTAL_CALORIES_BURNED"
+      ]
+    },
+    "web": {
+      "bundler": "metro",
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "react-native-health-connect",
+      "expo-splash-screen",
+      "expo-status-bar"
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "a58f2dee-b7d9-4519-973e-c1f52558e971"
+      }
+    }
+  }
+}

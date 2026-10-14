@@ -1,0 +1,64 @@
+
+# Python & Virtual Environments
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+env/
+venv/
+ENV/
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# Node & Mobile
+node_modules/
+**/node_modules/
+.expo/
+**/.expo/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+
+# Android & Build caches
+**/build/
+**/dist/
+dist/
+**/.gradle/
+**/.kotlin/
+**/local.properties
+*.apk
+*.aab
+*.keystore
+*.jks
+**/Pods/
+*.bak
+
+# Environment variables & secrets
+.env
+*.local
+*.pem
+*.key
+
+# OS files & Editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+.agents/
+
+
+# Databases
+*.db
+*.sqlite3
+
+# Scratch analysis files
+docx_extracted.txt
+docx_paragraphs.txt
+parsed_test_cases.txt
+parse_cases.py
+prompt_pack_extracted.txt
+search_defects.py
