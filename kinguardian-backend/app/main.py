@@ -9,7 +9,9 @@ import app.models  # register ORM metadata
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    # Local-first bootstrap. Production must run Alembic before starting workers.
+    # Local-first bootstrap: ensure all database tables and schema are created.
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
     yield
     await engine.dispose()
 
