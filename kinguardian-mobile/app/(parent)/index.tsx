@@ -21,6 +21,9 @@ export default function ParentDashboardRoute() {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
+  const [activeFamilyId, setActiveFamilyId] = useState<string>('');
+  const [dynamicMeds, setDynamicMeds] = useState<any[]>([]);
+  const [dynamicAppts, setDynamicAppts] = useState<any[]>([]);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -101,8 +104,21 @@ export default function ParentDashboardRoute() {
                 context.setCurrentPersonId(activeSubject.id);
               }
 
-              const checkIns = await realDataService.getCheckIns(targetFamily.id, activeSubject?.id);
-              const meds = await realDataService.getMedicationAdherence(targetFamily.id, activeSubject?.id);
+              setActiveFamilyId(targetFamily.id);
+
+              const [checkIns, meds, realMeds, realAppts] = await Promise.all([
+                realDataService.getCheckIns(targetFamily.id, activeSubject?.id).catch(() => []),
+                realDataService.getMedicationAdherence(targetFamily.id, activeSubject?.id).catch(() => []),
+                realDataService.getSubjectMedications(activeSubject?.id).catch(() => null),
+                realDataService.getAppointments(targetFamily.id, activeSubject?.id).catch(() => [])
+              ]);
+
+              if (realMeds?.medications && realMeds.medications.length > 0) {
+                setDynamicMeds(realMeds.medications);
+              }
+              if (Array.isArray(realAppts) && realAppts.length > 0) {
+                setDynamicAppts(realAppts);
+              }
               
               const coord = members?.find((m: any) => m.role === 'coordinator');
               if (coord) {
@@ -215,6 +231,9 @@ export default function ParentDashboardRoute() {
           onOpenNotifications={() => setNotificationsOpen(true)}
           unreadCount={unreadCount}
           targetSubjectId={parentSubjectId}
+          familyId={activeFamilyId}
+          initialMedications={dynamicMeds}
+          initialAppointments={dynamicAppts}
         />
 
         <ParentVoiceModal

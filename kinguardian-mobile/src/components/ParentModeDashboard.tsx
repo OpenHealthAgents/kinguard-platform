@@ -39,6 +39,9 @@ interface ParentModeDashboardProps {
   onOpenNotifications: () => void;
   unreadCount: number;
   targetSubjectId?: string;
+  familyId?: string;
+  initialMedications?: any[];
+  initialAppointments?: any[];
 }
 
 export const ParentModeDashboard: React.FC<ParentModeDashboardProps> = ({
@@ -49,12 +52,21 @@ export const ParentModeDashboard: React.FC<ParentModeDashboardProps> = ({
   isAtorvastatinTaken,
   onOpenNotifications,
   unreadCount,
-  targetSubjectId
+  targetSubjectId,
+  familyId,
+  initialMedications,
+  initialAppointments
 }) => {
   const router = useRouter();
   const context = useContext(AppContext);
   const coordName = context?.coordinatorName || 'Coordinator';
   const parentName = context?.currentUser?.name || 'Parent';
+
+  // Dynamic clinical and schedule state
+  const [dynamicMeds, setDynamicMeds] = useState<any[]>(initialMedications || []);
+  const [dynamicAppointments, setDynamicAppointments] = useState<any[]>(initialAppointments || []);
+  const [confirmedMedIds, setConfirmedMedIds] = useState<string[]>([]);
+  const [parentSummary, setParentSummary] = useState<any>(null);
 
   // Check-in state variables
   const [step, setStep] = useState<1 | 2 | 3>(1);
@@ -90,16 +102,37 @@ export const ParentModeDashboard: React.FC<ParentModeDashboardProps> = ({
   useEffect(() => {
     let isMounted = true;
     const resolvedId = targetSubjectId || context?.currentPersonId;
+    const targetFamilyId = familyId || context?.familyName;
 
-    // Load initial device connections and summary from backend
+    // Load initial device connections, dynamic medications, appointments, and summary from backend
     const loadInitialState = async () => {
       try {
-        const [conns, summary] = await Promise.allSettled([
+        const [conns, summary, medsRes, apptsRes, checkinsRes, parentSumRes] = await Promise.allSettled([
           realDataService.getWearableConnections(resolvedId),
-          realDataService.getWearableHealthSummary(resolvedId)
+          realDataService.getWearableHealthSummary(resolvedId),
+          realDataService.getSubjectMedications(resolvedId),
+          realDataService.getAppointments(targetFamilyId, resolvedId),
+          realDataService.getCheckIns(targetFamilyId, resolvedId),
+          realDataService.getParentSummary(resolvedId)
         ]);
 
         if (isMounted) {
+          if (medsRes.status === 'fulfilled' && medsRes.value?.medications && medsRes.value.medications.length > 0) {
+            setDynamicMeds(medsRes.value.medications);
+          }
+          if (apptsRes.status === 'fulfilled' && Array.isArray(apptsRes.value) && apptsRes.value.length > 0) {
+            setDynamicAppointments(apptsRes.value);
+          }
+          if (checkinsRes.status === 'fulfilled' && Array.isArray(checkinsRes.value) && checkinsRes.value.length > 0) {
+            const latest = checkinsRes.value[0];
+            if (latest?.occurred_at) {
+              setLastCheckInAt(latest.occurred_at);
+            }
+          }
+          if (parentSumRes.status === 'fulfilled' && parentSumRes.value && !parentSumRes.value.error) {
+            setParentSummary(parentSumRes.value);
+          }
+
           if (conns.status === 'fulfilled' && conns.value && conns.value.length > 0) {
             const activeConn = conns.value.find((c: any) => c.connection_status === 'connected' || c.connection_status === 'active') || conns.value[0];
             if (activeConn) {
@@ -175,7 +208,7 @@ export const ParentModeDashboard: React.FC<ParentModeDashboardProps> = ({
     });
 
     const startSync = () => {
-      googleFitService.startRealTimeStreaming(resolvedId, 30000);
+      googleFitService.startRealTimeStreaming(resolvedId, 3500);
     };
 
     if (AppState.currentState === 'active') startSync();
@@ -244,15 +277,76 @@ export const ParentModeDashboard: React.FC<ParentModeDashboardProps> = ({
     }
   };
 
-  const upcomingAppt = context?.appointments?.find(
-    (a) => a.status === 'upcoming' && (!a.personId || a.personId === 'dad')
-  ) || context?.appointments?.[0] || {
-    doctorName: 'Dr. Sharma',
-    specialty: 'Cardiology',
-    date: 'Tomorrow',
-    time: '4:00 PM',
-    location: 'Apollo Hospital'
-  };
+  const activeMedicationsList = dynamicMeds.length > 0 ? dynamicMeds : medications;
+
+  // Dynamically resolve the active pending dose for today
+  const activePendingDose = (() => {
+    if (isDoseConfirmed) return null;
+
+    if (activeMedicationsList.length > 0) {
+      const found = activeMedicationsList.find((m: any) => {
+        const id = m.id || m.medication_ref || m.name || m.title;
+        if (confirmedMedIds.includes(id)) return false;
+        const adherenceStr = (m.adherence || m.compliance_status || m.status || '').toLowerCase();
+        return !adherenceStr.includes('taken') && !adherenceStr.includes('confirmed');
+      });
+      if (found) return found;
+    }
+
+    if (!isAtorvastatinTaken && !confirmedMedIds.includes('rec-5')) {
+      return {
+        id: 'rec-5',
+        name: 'Atorvastatin',
+        dosage: '20mg',
+        timing: '8:00 PM',
+        schedule: 'evening',
+        definition: 'cholesterol support'
+      };
+    }
+
+    return null;
+  })();
+
+  const upcomingAppt = (() => {
+    if (dynamicAppointments.length > 0) {
+      const a = dynamicAppointments.find((x: any) =>
+        (x.status || '').toLowerCase() === 'scheduled' || (x.status || '').toLowerCase() === 'upcoming'
+      ) || dynamicAppointments[0];
+      if (a) {
+        let dateDisplay = a.date || 'Tomorrow';
+        try {
+          const parsed = new Date(a.date);
+          if (!isNaN(parsed.getTime())) {
+            dateDisplay = parsed.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+          }
+        } catch {}
+        return {
+          doctorName: a.doctor_name || a.doctorName || a.doctor || 'Dr. Sharma',
+          specialty: a.specialty || 'Cardiology',
+          date: dateDisplay,
+          time: a.time || (a.datetime ? new Date(a.datetime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '4:00 PM'),
+          location: a.location || 'Apollo Hospital'
+        };
+      }
+    }
+    if (context?.appointments && context.appointments.length > 0) {
+      const a = context.appointments.find((x) => x.status === 'upcoming') || context.appointments[0];
+      return {
+        doctorName: a.doctorName || 'Dr. Sharma',
+        specialty: a.specialty || 'Cardiology',
+        date: a.date || 'Tomorrow',
+        time: a.time || '4:00 PM',
+        location: a.location || 'Apollo Hospital'
+      };
+    }
+    return {
+      doctorName: 'Dr. Sharma',
+      specialty: 'Cardiology',
+      date: 'Tomorrow',
+      time: '4:00 PM',
+      location: 'Apollo Hospital'
+    };
+  })();
 
   const handleSelectFeeling = (sel: 'Good' | 'Tired' | 'Unwell') => {
     setFeeling(sel);
@@ -263,7 +357,8 @@ export const ParentModeDashboard: React.FC<ParentModeDashboardProps> = ({
     const finalNote = customNote || typedNote;
     if (feeling) {
       onCheckIn(feeling);
-      setLastCheckInAt(new Date().toISOString());
+      const nowIso = new Date().toISOString();
+      setLastCheckInAt(nowIso);
       if (
         feeling === 'Unwell' ||
         finalNote.toLowerCase().includes('chest') ||
@@ -273,6 +368,17 @@ export const ParentModeDashboard: React.FC<ParentModeDashboardProps> = ({
       } else {
         setIsUrgent(false);
       }
+
+      // Persist checkin to backend asynchronously
+      const resolvedId = targetSubjectId || context?.currentPersonId;
+      const targetFamilyId = familyId || context?.familyName;
+      realDataService.createCheckIn(
+        feeling,
+        finalNote,
+        feeling === 'Unwell' ? 'urgent' : 'normal',
+        resolvedId,
+        targetFamilyId
+      ).catch(() => {});
     }
     setStep(3);
   };
@@ -299,7 +405,7 @@ export const ParentModeDashboard: React.FC<ParentModeDashboardProps> = ({
             {t('parentHome.greeting')}
           </Text>
           <Text className="text-sm text-slate-500 mt-1">
-            Connected with {coordName}
+            Connected with {coordName}{parentSummary?.demographics?.location ? ` • ${parentSummary.demographics.location}` : ''}
           </Text>
         </View>
         <View className="flex-row items-center gap-3">
@@ -551,18 +657,17 @@ export const ParentModeDashboard: React.FC<ParentModeDashboardProps> = ({
         </View>
 
         {/* Medication Confirmation Prompt */}
-        {/* Medication Confirmation Prompt */}
-        {!(isAtorvastatinTaken || isDoseConfirmed) ? (
+        {activePendingDose ? (
           <View className="bg-white rounded-3xl p-5 shadow-lg shadow-neutral-100 space-y-4 border-l-4 border-[#ff3b30]">
             <View className="space-y-1">
               <Text className="text-[9px] font-bold text-[#ff3b30] uppercase tracking-wider">
                 Pending Dose
               </Text>
               <Text className="text-lg font-bold text-neutral-900 leading-tight">
-                Did you take your evening medicine?
+                Did you take your {activePendingDose.schedule || (activePendingDose.timing?.includes('AM') ? 'morning' : 'evening')} medicine?
               </Text>
               <Text className="text-xs font-semibold text-neutral-400 mt-0.5">
-                Atorvastatin 20mg (cholesterol support) scheduled at 8:00 PM.
+                {activePendingDose.name || activePendingDose.title} {activePendingDose.dosage || activePendingDose.dose || ''} {activePendingDose.definition ? `(${activePendingDose.definition})` : ''} scheduled at {activePendingDose.timing || activePendingDose.scheduledTime || 'today'}.
               </Text>
             </View>
             <View className="flex-row flex-wrap gap-3 pt-1">
@@ -570,11 +675,17 @@ export const ParentModeDashboard: React.FC<ParentModeDashboardProps> = ({
                 testID="parent-home-medication-confirm-yes"
                 accessible={true}
                 accessibilityRole="button"
-                accessibilityLabel="Confirm taking evening medicine: Atorvastatin 20mg"
-                accessibilityHint="Marks Atorvastatin 20mg as taken in your daily schedule"
+                accessibilityLabel={`Confirm taking ${activePendingDose.name || activePendingDose.title}`}
+                accessibilityHint={`Marks ${activePendingDose.name || activePendingDose.title} as taken in your daily schedule`}
                 onPress={() => {
+                  const mId = activePendingDose.id || activePendingDose.medication_ref || 'rec-5';
+                  const mName = `${activePendingDose.name || activePendingDose.title} ${activePendingDose.dosage || activePendingDose.dose || ''}`.trim();
                   setIsDoseConfirmed(true);
-                  onConfirmMedication('rec-5', 'Atorvastatin 20mg', true);
+                  setConfirmedMedIds((prev) => [...prev, mId]);
+                  onConfirmMedication(mId, mName, true);
+                  const resolvedId = targetSubjectId || context?.currentPersonId;
+                  const targetFamilyId = familyId || context?.familyName;
+                  realDataService.confirmMedication(activePendingDose.name || activePendingDose.title, true, resolvedId, targetFamilyId).catch(() => {});
                 }}
                 className="flex-1 min-w-[140px] min-h-[48px] py-3 px-3 bg-emerald-600 rounded-2xl items-center justify-center active:scale-95 shadow-lg"
               >
@@ -584,11 +695,11 @@ export const ParentModeDashboard: React.FC<ParentModeDashboardProps> = ({
                 testID="parent-home-medication-confirm-not-yet"
                 accessible={true}
                 accessibilityRole="button"
-                accessibilityLabel="I have not taken Atorvastatin 20mg yet"
+                accessibilityLabel={`I have not taken ${activePendingDose.name || activePendingDose.title} yet`}
                 accessibilityHint="Leaves dose pending and alerts coordinator"
                 onPress={() => {
                   if (typeof alert !== 'undefined') {
-                    alert(`Please take it before sleep. Alert synced with ${coordName}.`);
+                    alert(`Please take it as scheduled. Alert synced with ${coordName}.`);
                   }
                 }}
                 className="min-w-[100px] min-h-[48px] py-3 px-3 bg-neutral-100 rounded-2xl items-center justify-center active:scale-95"
@@ -603,8 +714,8 @@ export const ParentModeDashboard: React.FC<ParentModeDashboardProps> = ({
               <Text className="text-white font-bold text-base">✓</Text>
             </View>
             <View className="flex-1">
-              <Text className="text-xs font-bold text-emerald-900">Evening Medicine Confirmed</Text>
-              <Text className="text-[11px] text-emerald-700">Atorvastatin 20mg marked as taken • Synced with {coordName}</Text>
+              <Text className="text-xs font-bold text-emerald-900">All Scheduled Medicines Taken</Text>
+              <Text className="text-[11px] text-emerald-700">Daily medication adherence confirmed • Synced with {coordName}</Text>
             </View>
           </View>
         )}
@@ -790,35 +901,48 @@ export const ParentModeDashboard: React.FC<ParentModeDashboardProps> = ({
           </View>
 
           <View className="space-y-2">
-            {medications.slice(0, 2).map((med) => {
-              const isTaken = med.status?.includes('Taken');
-              return (
-                <TouchableOpacity
-                  key={med.id}
-                  testID={`parent-home-medication-${med.id}`}
-                  onPress={() => router.push('/(parent)/medicines')}
-                  className={`bg-white rounded-3xl p-4 flex-row items-center justify-between shadow-lg shadow-neutral-100 active:scale-98 border-l-4 ${
-                    isTaken ? 'border-[#34c759]' : 'border-[#ff9500]'
-                  }`}
-                >
-                  <View className="flex-grow space-y-0.5">
-                    <Text className="text-sm font-bold text-neutral-900">{med.title}</Text>
-                    <Text className="text-xs text-neutral-400 font-semibold leading-relaxed">
-                      {med.subtitle}
-                    </Text>
-                  </View>
-                  <View
-                    className={`px-2.5 py-0.5 rounded-full ${isTaken ? 'bg-emerald-50' : 'bg-orange-50'}`}
+            {activeMedicationsList.length > 0 ? (
+              activeMedicationsList.slice(0, 3).map((med: any) => {
+                const medId = med.id || med.medication_ref || med.name || med.title;
+                const isTaken = confirmedMedIds.includes(medId) ||
+                  (med.status || med.compliance_status || med.adherence || '').toLowerCase().includes('taken');
+                const title = med.name || med.title || 'Medicine';
+                const subtitle = med.dosage || med.dose
+                  ? `${med.dosage || med.dose} • ${med.schedule || med.timing || med.frequency || 'Daily'}`
+                  : (med.subtitle || 'Daily schedule');
+
+                return (
+                  <TouchableOpacity
+                    key={medId}
+                    testID={`parent-home-medication-${medId}`}
+                    onPress={() => router.push('/(parent)/medicines')}
+                    className={`bg-white rounded-3xl p-4 flex-row items-center justify-between shadow-lg shadow-neutral-100 active:scale-98 border-l-4 ${
+                      isTaken ? 'border-[#34c759]' : 'border-[#ff9500]'
+                    }`}
                   >
-                    <Text
-                      className={`text-[8px] font-bold uppercase ${isTaken ? 'text-[#34c759]' : 'text-[#ff9500]'}`}
+                    <View className="flex-grow space-y-0.5">
+                      <Text className="text-sm font-bold text-neutral-900">{title}</Text>
+                      <Text className="text-xs text-neutral-400 font-semibold leading-relaxed">
+                        {subtitle}
+                      </Text>
+                    </View>
+                    <View
+                      className={`px-2.5 py-0.5 rounded-full ${isTaken ? 'bg-emerald-50' : 'bg-orange-50'}`}
                     >
-                      {isTaken ? 'Taken' : 'Pending'}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              );
-            })}
+                      <Text
+                        className={`text-[8px] font-bold uppercase ${isTaken ? 'text-[#34c759]' : 'text-[#ff9500]'}`}
+                      >
+                        {isTaken ? 'Taken' : 'Pending'}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })
+            ) : (
+              <View className="bg-white rounded-3xl p-4 border border-slate-100">
+                <Text className="text-xs text-slate-500 font-medium">No medications scheduled for today.</Text>
+              </View>
+            )}
           </View>
         </View>
 
@@ -869,48 +993,67 @@ export const ParentModeDashboard: React.FC<ParentModeDashboardProps> = ({
             </TouchableOpacity>
           </View>
 
-          <TouchableOpacity
-            testID="parent-home-appointment-card"
-            onPress={() => router.push('/(parent)/appointments')}
-            className="bg-white rounded-3xl p-4.5 shadow-lg shadow-neutral-100 space-y-3 border-l-4 border-[#007aff] active:scale-98"
-          >
-            <View className="flex-row items-center justify-between">
+          {upcomingAppt ? (
+            <TouchableOpacity
+              testID="parent-home-appointment-card"
+              onPress={() => router.push('/(parent)/appointments')}
+              className="bg-white rounded-3xl p-4.5 shadow-lg shadow-neutral-100 space-y-3 border-l-4 border-[#007aff] active:scale-98"
+            >
+              <View className="flex-row items-center justify-between">
+                <View className="flex-row items-center gap-3.5 flex-1 pr-2">
+                  <View className="w-12 h-12 rounded-3xl bg-blue-50 border border-blue-100 items-center justify-center">
+                    <Calendar size={24} color="#007aff" />
+                  </View>
+                  <View className="flex-1">
+                    <Text
+                      testID="parent-home-appointment-doctor"
+                      className="text-base font-bold text-neutral-900"
+                    >
+                      {upcomingAppt.doctorName} ({upcomingAppt.specialty})
+                    </Text>
+                    <Text
+                      testID="parent-home-appointment-details"
+                      className="text-xs text-neutral-500 mt-0.5"
+                    >
+                      {upcomingAppt.date} at {upcomingAppt.time} • {upcomingAppt.location}
+                    </Text>
+                    <Text
+                      testID="parent-home-appointment-localtime"
+                      accessibilityLabel={`Appointment at ${upcomingAppt.time} your local time, ${parentTimezone}. No conversion needed.`}
+                      className="text-[10px] font-bold text-neutral-400 mt-1"
+                    >
+                      {upcomingAppt.time} local time · {parentTimezone}
+                    </Text>
+                  </View>
+                </View>
+                <ChevronRight size={16} color="#8e8e93" />
+              </View>
+
+              <View className="bg-blue-50/60 px-3.5 py-2 rounded-xl flex-row items-center justify-between">
+                <Text className="text-xs font-semibold text-[#007aff]">
+                  {upcomingAppt.specialty} consultation booked
+                </Text>
+                <Text className="text-xs font-bold text-[#007aff]">View Details &rarr;</Text>
+              </View>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              testID="parent-home-appointment-card"
+              onPress={() => router.push('/(parent)/appointments')}
+              className="bg-white rounded-3xl p-4.5 shadow-lg shadow-neutral-100 flex-row items-center justify-between active:scale-98 border-l-4 border-slate-300"
+            >
               <View className="flex-row items-center gap-3.5 flex-1 pr-2">
-                <View className="w-12 h-12 rounded-3xl bg-blue-50 border border-blue-100 items-center justify-center">
-                  <Calendar size={24} color="#007aff" />
+                <View className="w-12 h-12 rounded-3xl bg-slate-50 border border-slate-100 items-center justify-center">
+                  <Calendar size={24} color="#64748b" />
                 </View>
                 <View className="flex-1">
-                  <Text
-                    testID="parent-home-appointment-doctor"
-                    className="text-base font-bold text-neutral-900"
-                  >
-                    {upcomingAppt?.doctorName || 'Dr. Sharma'} ({upcomingAppt?.specialty || 'Cardiology'})
-                  </Text>
-                  <Text
-                    testID="parent-home-appointment-details"
-                    className="text-xs text-neutral-500 mt-0.5"
-                  >
-                    {upcomingAppt?.date || 'Tomorrow'} at {upcomingAppt?.time || '4:00 PM'} • {upcomingAppt?.location || 'Apollo Hospital'}
-                  </Text>
-                  <Text
-                    testID="parent-home-appointment-localtime"
-                    accessibilityLabel={`Appointment at ${upcomingAppt?.time || '4:00 PM'} your local time, ${parentTimezone}. No conversion needed.`}
-                    className="text-[10px] font-bold text-neutral-400 mt-1"
-                  >
-                    {upcomingAppt?.time || '4:00 PM'} local time · {parentTimezone}
-                  </Text>
+                  <Text className="text-base font-bold text-neutral-900">No Upcoming Appointments</Text>
+                  <Text className="text-xs text-neutral-500 mt-0.5">Your schedule is clear. Tap to view past consults.</Text>
                 </View>
               </View>
               <ChevronRight size={16} color="#8e8e93" />
-            </View>
-
-            <View className="bg-blue-50/60 px-3.5 py-2 rounded-xl flex-row items-center justify-between">
-              <Text className="text-xs font-semibold text-[#007aff]">
-                Cardiology consultation booked
-              </Text>
-              <Text className="text-xs font-bold text-[#007aff]">View Details &rarr;</Text>
-            </View>
-          </TouchableOpacity>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Section: Documents */}
