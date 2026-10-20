@@ -540,31 +540,31 @@ export const HealthDashboard: React.FC<HealthDashboardProps> = ({
         className="flex-1"
         contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 120, gap: 24 }}
       >
-        {/* Hero Greeting & Emergency Summary */}
-        <View className="flex-row items-start justify-between">
-          <View className="space-y-1 flex-1 mr-3">
-            <Text className="text-2xl font-black text-slate-900 tracking-tight">
-              Good morning, {displayCoordinatorName}
-            </Text>
-            <Text className="text-xs text-slate-500 font-medium">
-              Here's what's happening with your family today
-            </Text>
-          </View>
-          <TouchableOpacity
-            onPress={() => router.push(`/(coordinator)/parent/${primaryPerson?.id || 'dad'}/summary` as any)}
-            className="flex-row items-center gap-1.5 bg-red-50 hover:bg-red-100 px-3 py-2 rounded-2xl border border-red-200 shadow-2xs active:scale-95 shrink-0"
-            accessibilityLabel="Emergency Summary"
-          >
-            <ShieldCheck size={13} color="#ef4444" />
-            <Text className="text-[11px] font-bold text-red-700">Emergency Summary</Text>
-          </TouchableOpacity>
+        {/* Hero Greeting */}
+        <View className="space-y-1">
+          <Text className="text-2xl font-black text-slate-900 tracking-tight">
+            Good morning, {displayCoordinatorName}
+          </Text>
+          <Text className="text-xs text-slate-500 font-medium">
+            Here's what's happening with your family today
+          </Text>
         </View>
 
         {/* Today's Attention Alert Section */}
         <View className="space-y-3">
-          <Text className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">
-            Today's Attention
-          </Text>
+          <View className="flex-row items-center justify-between pr-1">
+            <Text className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">
+              Today's Attention
+            </Text>
+            <TouchableOpacity
+              onPress={() => router.push(`/(coordinator)/parent/${primaryPerson?.id || 'dad'}/summary` as any)}
+              className="flex-row items-center gap-1.5 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-2xl border border-red-200 shadow-2xs active:scale-95"
+              accessibilityLabel="Emergency Summary"
+            >
+              <ShieldCheck size={13} color="#ef4444" />
+              <Text className="text-[11px] font-bold text-red-700">Emergency Summary</Text>
+            </TouchableOpacity>
+          </View>
 
           {currentScenario === 'parent-feeling-unwell' ? (
             /* Parent Feeling Unwell Urgent Card */
