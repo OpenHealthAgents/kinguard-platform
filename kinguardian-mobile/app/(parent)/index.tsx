@@ -123,10 +123,14 @@ export default function ParentDashboardRoute() {
                 context.setPeople(subjects.map((cs: any) => {
                   let refName = cs.display_name || cs.name || 'Parent';
                   let refRel = cs.relationship || 'Parent';
+                  let refCity = 'Hyderabad';
+                  let refCountry = 'India';
                   try {
                     const parsed = JSON.parse(cs.external_patient_ref || '{}');
                     refName = parsed.name || refName;
                     refRel = parsed.relationship || refRel;
+                    if (parsed.city && parsed.city !== 'Not provided') refCity = parsed.city;
+                    if (parsed.country && parsed.country !== 'Not provided') refCountry = parsed.country;
                   } catch {}
                   return {
                     id: cs.id,
@@ -135,10 +139,10 @@ export default function ParentDashboardRoute() {
                     role: 'parent',
                     relationship: refRel,
                     relation: refRel,
-                    location: cs.preferred_timezone || 'Chennai, India',
+                    location: `${refCity}, ${refCountry}`,
                     age: 68,
-                    city: 'Chennai',
-                    country: 'India',
+                    city: refCity,
+                    country: refCountry,
                     timezone: cs.preferred_timezone || 'Asia/Kolkata',
                     wellbeingStatus: 'doing-well' as const
                   };

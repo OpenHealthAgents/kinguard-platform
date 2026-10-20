@@ -14,7 +14,8 @@ export interface NotificationService {
 export class ApiNotificationService implements NotificationService {
   private client: DrGodlyApiClient;
   private familyService: ApiFamilyService;
-  private notifications: AppNotification[] = [...INITIAL_NOTIFICATIONS];
+  private notifications: AppNotification[] =
+    process.env.EXPO_PUBLIC_USE_MOCK_DATA === 'true' ? [...INITIAL_NOTIFICATIONS] : [];
 
   constructor(baseUrl: string = CONFIG.apiUrl, familyService?: ApiFamilyService) {
     this.client = new DrGodlyApiClient({ baseUrl });
@@ -26,7 +27,7 @@ export class ApiNotificationService implements NotificationService {
       const familyId = await this.familyService.ensureFamily();
       const backendNotifs = await this.client.notifications.list(familyId);
 
-      if (backendNotifs && backendNotifs.length > 0) {
+      if (backendNotifs && Array.isArray(backendNotifs)) {
         const liveNotifs: AppNotification[] = backendNotifs.map((n: any) => ({
           id: n.id,
           title: n.payload?.title || n.event_type || 'Care Notification',
@@ -43,9 +44,8 @@ export class ApiNotificationService implements NotificationService {
           recipient: n.payload?.recipient || (n.event_type === 'medication_reminder' ? 'parent' : 'coordinator')
         }));
 
-        const combined = [...liveNotifs, ...this.notifications.filter((old) => !liveNotifs.some((l) => l.id === old.id))];
-        this.notifications = combined;
-        return combined;
+        this.notifications = liveNotifs;
+        return liveNotifs;
       }
     } catch (err) {
       console.warn('ApiNotificationService: Failed to fetch notifications from DB:', err);

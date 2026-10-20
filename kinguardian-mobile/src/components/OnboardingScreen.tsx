@@ -16,13 +16,14 @@ import { BrandLogo } from './ui/BrandLogo';
 
 interface OnboardingScreenProps {
   initialStep?: number;
-  onComplete: (config: { userLoc: string; parentLoc: string; familyId?: string }) => void;
+  onComplete: (config: { userLoc: string; userCity?: string; parentLoc: string; familyId?: string }) => void;
 }
 
 export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ initialStep = 1, onComplete }) => {
   const context = useContext(AppContext);
   const [step, setStep] = useState(initialStep);
   const [userLoc, setUserLoc] = useState('UK');
+  const [userCity, setUserCity] = useState('');
   const [parentLoc, setParentLoc] = useState('India');
   const [careTarget, setCareTarget] = useState<'Mom' | 'Dad' | 'Both'>('Both');
 
@@ -96,16 +97,50 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ initialStep 
       try {
         const cleanParentName = parentName.trim() || (careTarget === 'Mom' ? 'Mom' : 'Dad');
         const rel = careTarget === 'Mom' ? 'Mother' : (careTarget === 'Dad' ? 'Father' : 'Father');
-        const resolveTimezone = (loc: string) => {
+        const resolveCountry = (loc: string) => {
+          switch (loc) {
+            case 'UK': return 'United Kingdom';
+            case 'UAE': return 'United Arab Emirates';
+            case 'USA': return 'United States';
+            case 'Singapore': return 'Singapore';
+            case 'Canada': return 'Canada';
+            case 'India': return 'India';
+            default: return loc;
+          }
+        };
+
+        const resolveTimezone = (loc: string, city?: string) => {
+          const cLower = (city || '').toLowerCase();
+          if (loc === 'USA') {
+            if (cLower.includes('francisco') || cLower.includes('los angeles') || cLower.includes('seattle') || cLower.includes('san diego') || cLower.includes('california') || cLower.includes('portland') || cLower.includes('san jose')) {
+              return 'America/Los_Angeles';
+            }
+            if (cLower.includes('chicago') || cLower.includes('dallas') || cLower.includes('houston') || cLower.includes('austin') || cLower.includes('texas') || cLower.includes('minneapolis')) {
+              return 'America/Chicago';
+            }
+            if (cLower.includes('denver') || cLower.includes('phoenix') || cLower.includes('colorado') || cLower.includes('salt lake')) {
+              return 'America/Denver';
+            }
+            return 'America/New_York';
+          }
           switch (loc) {
             case 'UK': return 'Europe/London';
             case 'UAE': return 'Asia/Dubai';
-            case 'USA': return 'America/New_York';
             case 'Singapore': return 'Asia/Singapore';
-            case 'Canada': return 'America/Toronto';
+            case 'Canada':
+              if (cLower.includes('vancouver')) return 'America/Vancouver';
+              return 'America/Toronto';
+            case 'India': return 'Asia/Kolkata';
             default: return 'Europe/London';
           }
         };
+
+        const defaultCity = userLoc === 'USA' ? 'New York' : (userLoc === 'UK' ? 'London' : (userLoc === 'UAE' ? 'Dubai' : (userLoc === 'Canada' ? 'Toronto' : (userLoc === 'Singapore' ? 'Singapore' : 'Delhi'))));
+        const finalCity = userCity.trim() || defaultCity;
+        const finalCountry = resolveCountry(userLoc);
+        const finalTimezone = resolveTimezone(userLoc, userCity.trim());
+        const finalLocation = `${finalCity}, ${finalCountry}`;
+
         const familyName = `${cleanParentName} Care Circle`;
 
         const parentsList: Array<{
@@ -139,20 +174,31 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ initialStep 
         }
 
         const res = await realDataService.completeCoordinatorOnboarding({
-          location: userLoc,
-          timezone: resolveTimezone(userLoc),
+          location: finalLocation,
+          country: finalCountry,
+          city: finalCity,
+          timezone: finalTimezone,
           family_name: familyName,
           parent: parentsList[0],
           parents: parentsList
-        });
+        } as any);
 
         if (context) {
           if (context.setFamilyName) context.setFamilyName(familyName);
+          if (context.setCurrentUser && context.currentUser) {
+            context.setCurrentUser({
+              ...context.currentUser,
+              location: finalLocation,
+              city: finalCity,
+              country: finalCountry,
+              timezone: finalTimezone
+            } as any);
+          }
           context.setCurrentScreen('health_dashboard');
           context.showToast('Onboarding complete! Family context created.');
         }
 
-        onComplete({ userLoc, parentLoc, familyId: res?.family_id });
+        onComplete({ userLoc, userCity: finalCity, parentLoc, familyId: res?.family_id });
       } catch (e) {
         console.warn('Onboarding completion error:', e);
         if (context) {
@@ -219,7 +265,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ initialStep 
               </Text>
 
               <View className="space-y-2 mt-2">
-                {['UK', 'UAE', 'USA', 'Singapore', 'Canada'].map((country) => (
+                {['USA', 'UK', 'UAE', 'India', 'Singapore', 'Canada'].map((country) => (
                   <TouchableOpacity
                     key={country}
                     testID={`onboarding-userloc-${country}`}
@@ -234,16 +280,43 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ initialStep 
                       className={`text-sm font-semibold ${userLoc === country ? 'text-[#007aff]' : 'text-neutral-700'}`}
                     >
                       {country === 'UK'
-                        ? 'United Kingdom (London)'
+                        ? 'United Kingdom'
                         : country === 'UAE'
-                          ? 'United Arab Emirates (Dubai)'
+                          ? 'United Arab Emirates'
                           : country === 'USA'
                             ? 'United States'
-                            : country}
+                            : country === 'India'
+                              ? 'India'
+                              : country}
                     </Text>
                     {userLoc === country && <CheckCircle2 size={16} color="#007aff" />}
                   </TouchableOpacity>
                 ))}
+              </View>
+
+              {/* City input */}
+              <View className="space-y-1.5 mt-3 pt-3 border-t border-neutral-100">
+                <Text className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider">
+                  City
+                </Text>
+                <TextInput
+                  testID="onboarding-user-city"
+                  value={userCity}
+                  onChangeText={setUserCity}
+                  placeholder={
+                    userLoc === 'USA'
+                      ? 'e.g. New York, San Francisco, Chicago, Austin'
+                      : userLoc === 'UK'
+                        ? 'e.g. London, Manchester, Edinburgh'
+                        : userLoc === 'UAE'
+                          ? 'e.g. Dubai, Abu Dhabi'
+                          : userLoc === 'Canada'
+                            ? 'e.g. Toronto, Vancouver'
+                            : 'e.g. Your city'
+                  }
+                  placeholderTextColor="#8e8e93"
+                  className="bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 text-xs text-neutral-800 focus:border-[#007aff]"
+                />
               </View>
             </View>
           )}

@@ -37,32 +37,30 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
     }
   };
 
-  // Grouping logic for Dad/Father notifications to avoid overload
-  const dadNotifs = notifications.filter(
-    (n) =>
-      n.message.toLowerCase().includes('dad') ||
-      n.message.toLowerCase().includes('father') ||
-      n.message.toLowerCase().includes('aniruddha') ||
-      n.message.toLowerCase().includes('ramesh') ||
-      n.title.toLowerCase().includes('dad') ||
-      n.title.toLowerCase().includes('father') ||
-      n.title.toLowerCase().includes('aniruddha') ||
-      n.title.toLowerCase().includes('ramesh')
-  );
+  // Grouping logic for parent notifications to avoid overload
+  const cleanParent = (parentName || 'Dad').toLowerCase();
+  const dadNotifs = notifications.filter((n) => {
+    const msg = (n.message || '').toLowerCase();
+    const title = (n.title || '').toLowerCase();
+    return (
+      msg.includes('dad') ||
+      msg.includes('father') ||
+      msg.includes('mom') ||
+      msg.includes('mother') ||
+      msg.includes('aniruddha') ||
+      msg.includes('ramesh') ||
+      (cleanParent.length > 2 && msg.includes(cleanParent)) ||
+      title.includes('dad') ||
+      title.includes('father') ||
+      title.includes('mom') ||
+      title.includes('mother') ||
+      title.includes('aniruddha') ||
+      title.includes('ramesh') ||
+      (cleanParent.length > 2 && title.includes(cleanParent))
+    );
+  });
 
-  const otherNotifs = notifications.filter(
-    (n) =>
-      !(
-        n.message.toLowerCase().includes('dad') ||
-        n.message.toLowerCase().includes('father') ||
-        n.message.toLowerCase().includes('aniruddha') ||
-        n.message.toLowerCase().includes('ramesh') ||
-        n.title.toLowerCase().includes('dad') ||
-        n.title.toLowerCase().includes('father') ||
-        n.title.toLowerCase().includes('aniruddha') ||
-        n.title.toLowerCase().includes('ramesh')
-      )
-  );
+  const otherNotifs = notifications.filter((n) => !dadNotifs.some((d) => d.id === n.id));
 
   const shouldGroup = dadNotifs.length >= 2;
 
@@ -121,7 +119,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
                             testID="notification-group-dad-count"
                             className="text-xs font-black text-slate-900"
                           >
-                            3 updates about {parentName}
+                            {dadNotifs.length} updates about {parentName}
                           </Text>
                           <Text className="text-[9px] font-bold text-slate-400">
                             {dadNotifs[0]?.time || 'Just now'}

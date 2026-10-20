@@ -22,6 +22,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { authService } from '../../../../src/services/auth/authService';
 import { CONFIG } from '../../../../src/constants/config';
+import { BottomNavBar } from '../../../../src/components/Navigation';
 
 interface AppointmentPrepData {
   subject_id: string;
@@ -58,47 +59,94 @@ interface AppointmentPrepData {
   generated_at?: string;
 }
 
-const DEFAULT_PREP_DATA: AppointmentPrepData = {
-  subject_id: 'subject-parent',
-  family_id: null,
-  patient_name: 'Parent',
-  appointment: {
-    doctor: 'Dr. Sharma',
-    specialty: 'Cardiology',
-    time: 'Tomorrow, 4:00 PM IST',
-    location: 'Apollo Hospital Chennai',
-    type: 'Telehealth Video Consult'
-  },
-  metrics_summary: {
-    bp_average_7d: '138/88 mmHg',
-    bp_trend: 'Elevated during afternoon heat (39°C)',
-    medication_adherence: '92%',
-    step_count_trend: '35% decline over past 5 days (heat avoidance)',
-    weight: 'Stable (72.4 kg)',
-    sleep: 'Slightly lower (5.8 hrs avg)'
-  },
-  current_medications: [
-    { name: 'Amlodipine', dosage: '5mg', schedule: 'Morning (8:00 AM)', status: 'Active' },
-    { name: 'Atorvastatin', dosage: '20mg', schedule: 'Evening (8:00 PM)', status: 'Active' }
-  ],
-  ai_synthesis: {
-    highlight: 'Blood pressure slightly elevated during Chennai heatwave; ask doctor about diuretic timing.',
-    clinical_observations: [
-      'Systolic blood pressure averaged 138 mmHg over the past 7 days, peaking between 2:00 PM and 6:00 PM.',
-      'Direct correlation with regional temperatures exceeding 38°C in Chennai.',
-      'Physical movement dropped by 35% as parent avoided outdoors.'
-    ],
-    ai_suggestions_for_consultation: [
-      'Blood pressure slightly elevated during Chennai heatwave; ask doctor about diuretic timing.',
-      '35% step activity reduction correlates with afternoon heat peaks - evaluate indoor exercise.',
-      'Verify hydration and electrolyte benchmarks given consistent baseline weight (72.4 kg).'
-    ],
-    doctor_questions: [
-      "Should we adjust afternoon diuretic timing on days when heat peaks above 38°C in Chennai?",
-      'How does the recent 35% steps activity decline correlate with evening BP spikes?',
-      'Are there any specific electrolyte or hydration benchmarks we need to track given baseline weight?'
-    ]
+const getInitialPrepData = (personName: string, id?: string): AppointmentPrepData => {
+  const isDemoDad =
+    (personName.toLowerCase().includes('ramesh') || personName.toLowerCase().includes('father')) ||
+    (id === 'dad' && !personName.toLowerCase().includes('jane') && !personName.toLowerCase().includes('mother') && !personName.toLowerCase().includes('mom'));
+  if (isDemoDad) {
+    return {
+      subject_id: 'subject-parent',
+      family_id: null,
+      patient_name: personName,
+      appointment: {
+        doctor: 'Dr. Sharma',
+        specialty: 'Cardiology',
+        time: 'Tomorrow, 4:00 PM IST',
+        location: 'Apollo Hospital Chennai',
+        type: 'Telehealth Video Consult'
+      },
+      metrics_summary: {
+        bp_average_7d: '138/88 mmHg',
+        bp_trend: 'Elevated during afternoon heat (39°C)',
+        medication_adherence: '92%',
+        step_count_trend: '35% decline over past 5 days (heat avoidance)',
+        weight: 'Stable (72.4 kg)',
+        sleep: 'Slightly lower (5.8 hrs avg)'
+      },
+      current_medications: [
+        { name: 'Amlodipine', dosage: '5mg', schedule: 'Morning (8:00 AM)', status: 'Active' },
+        { name: 'Atorvastatin', dosage: '20mg', schedule: 'Evening (8:00 PM)', status: 'Active' }
+      ],
+      ai_synthesis: {
+        highlight: 'Blood pressure slightly elevated during Chennai heatwave; ask doctor about diuretic timing.',
+        clinical_observations: [
+          'Systolic blood pressure averaged 138 mmHg over the past 7 days, peaking between 2:00 PM and 6:00 PM.',
+          'Direct correlation with regional temperatures exceeding 38°C in Chennai.',
+          'Physical movement dropped by 35% as parent avoided outdoors.'
+        ],
+        ai_suggestions_for_consultation: [
+          'Blood pressure slightly elevated during Chennai heatwave; ask doctor about diuretic timing.',
+          '35% step activity reduction correlates with afternoon heat peaks - evaluate indoor exercise.',
+          'Verify hydration and electrolyte benchmarks given consistent baseline weight (72.4 kg).'
+        ],
+        doctor_questions: [
+          "Should we adjust afternoon diuretic timing on days when heat peaks above 38°C in Chennai?",
+          'How does the recent 35% steps activity decline correlate with evening BP spikes?',
+          'Are there any specific electrolyte or hydration benchmarks we need to track given baseline weight?'
+        ]
+      }
+    };
   }
+
+  return {
+    subject_id: id || 'subject-parent',
+    family_id: null,
+    patient_name: personName,
+    appointment: {
+      doctor: 'No Scheduled Doctor',
+      specialty: 'General Consultation',
+      time: 'No upcoming visits scheduled',
+      location: 'Not scheduled',
+      type: 'Pre-consultation Preparation'
+    },
+    metrics_summary: {
+      bp_average_7d: '-- / -- mmHg',
+      bp_trend: 'No baseline readings logged',
+      medication_adherence: 'No active prescriptions',
+      step_count_trend: 'No activity sensors connected',
+      weight: '-- kg (Not logged)',
+      sleep: '-- (No sensor paired)'
+    },
+    current_medications: [],
+    ai_synthesis: {
+      highlight: `Consultation agenda prepared for ${personName}. Review overall wellness and preventive care.`,
+      clinical_observations: [
+        `Active profile for ${personName} in care circle.`,
+        'No active prescriptions on file.',
+        'Preventive wellness baseline active.'
+      ],
+      ai_suggestions_for_consultation: [
+        `Review daily nutrition, hydration, and physical mobility with ${personName}.`,
+        'Discuss recommended preventative health screenings and routine lab panels.',
+        'Establish baseline targets for blood pressure and daily activity.'
+      ],
+      doctor_questions: [
+        `Are there any preventative health screenings or baseline panels recommended for ${personName}?`,
+        `What target blood pressure and activity benchmarks should we maintain for ${personName}?`,
+        'Should we set up regular monitoring check-ins for any specific vital metrics?'
+      ]
+    }
+  };
 };
 
 export default function AppointmentPrepareRoute() {
@@ -109,10 +157,9 @@ export default function AppointmentPrepareRoute() {
   const person = context?.people.find((p) => p.id === id || p.backendSubjectId === id) || context?.people[0];
   const personName = person ? person.name : 'Parent';
 
-  const [data, setData] = useState<AppointmentPrepData>({
-    ...DEFAULT_PREP_DATA,
-    patient_name: personName
-  });
+  const [data, setData] = useState<AppointmentPrepData>(() =>
+    getInitialPrepData(personName, typeof id === 'string' ? id : undefined)
+  );
   const [loading, setLoading] = useState(false);
   const [generatingAI, setGeneratingAI] = useState(false);
   const [sharing, setSharing] = useState(false);
@@ -131,6 +178,48 @@ export default function AppointmentPrepareRoute() {
 
   const [isOfflineCopy, setIsOfflineCopy] = useState(false);
   const [simulatedOutage, setSimulatedOutage] = useState(false);
+
+  // Live contextual fallbacks
+  const contextUpcomingAppt = context?.appointments?.find(
+    (a) => (a.personId === person?.id || a.personId === id) && a.status === 'upcoming'
+  );
+  const contextMedications = (context?.medications || []).filter(
+    (m) => m.personId === person?.id || m.personId === id
+  );
+
+  const displayAppointment = {
+    doctor:
+      data.appointment.doctor === 'No Scheduled Doctor' && contextUpcomingAppt
+        ? contextUpcomingAppt.doctorName
+        : data.appointment.doctor,
+    specialty:
+      data.appointment.doctor === 'No Scheduled Doctor' && contextUpcomingAppt
+        ? contextUpcomingAppt.specialty
+        : data.appointment.specialty,
+    time:
+      data.appointment.doctor === 'No Scheduled Doctor' && contextUpcomingAppt
+        ? `${contextUpcomingAppt.date}, ${contextUpcomingAppt.time}`
+        : data.appointment.time,
+    location:
+      data.appointment.doctor === 'No Scheduled Doctor' && contextUpcomingAppt
+        ? contextUpcomingAppt.location
+        : data.appointment.location,
+    type: data.appointment.type
+  };
+
+  const displayMedications =
+    data.current_medications.length > 0
+      ? data.current_medications
+      : contextMedications.map((m) => ({
+          name: m.name,
+          dosage: m.dose || 'Active',
+          schedule: m.frequency ? `${m.frequency} (${m.scheduledTime})` : m.scheduledTime,
+          status: m.status === 'taken' ? 'Taken' : 'Active'
+        }));
+
+  const hasBPLog =
+    data.metrics_summary.bp_average_7d !== '-- / -- mmHg' &&
+    !data.metrics_summary.bp_average_7d.includes('--');
 
   const fetchAppointmentPrep = useCallback(async (isRefresh = false, forceOutage = false) => {
     if (forceOutage || simulatedOutage) {
@@ -152,9 +241,12 @@ export default function AppointmentPrepareRoute() {
       };
 
       const targetSubjectParam = person?.backendSubjectId || (typeof id === 'string' ? id : 'dad');
-      const res = await fetch(`${CONFIG.apiUrl}/api/v1/clinical/appointment-prep?subject_id=${targetSubjectParam}`, {
-        headers
-      });
+      const res = await fetch(
+        `${CONFIG.apiUrl}/api/v1/clinical/appointment-prep?subject_id=${targetSubjectParam}&name=${encodeURIComponent(personName)}`,
+        {
+          headers
+        }
+      );
 
       if (res.ok) {
         const json = await res.json();
@@ -189,12 +281,20 @@ export default function AppointmentPrepareRoute() {
           `kinguardian_cached_appointment_prep_${id || 'dad'}`
         );
         if (cached) {
-          setData(JSON.parse(cached));
+          const parsed = JSON.parse(cached);
+          const isDemoDad =
+            (personName.toLowerCase().includes('ramesh') || personName.toLowerCase().includes('father')) ||
+            (id === 'dad' && !personName.toLowerCase().includes('jane') && !personName.toLowerCase().includes('mother') && !personName.toLowerCase().includes('mom'));
+          if (!isDemoDad && (parsed?.appointment?.doctor === 'Dr. Sharma' || parsed?.ai_synthesis?.highlight?.includes('Chennai'))) {
+            setData(getInitialPrepData(personName, typeof id === 'string' ? id : undefined));
+          } else {
+            setData(parsed);
+          }
         } else {
-          setData(DEFAULT_PREP_DATA);
+          setData(getInitialPrepData(personName, typeof id === 'string' ? id : undefined));
         }
       } catch {
-        setData(DEFAULT_PREP_DATA);
+        setData(getInitialPrepData(personName, typeof id === 'string' ? id : undefined));
       }
       setIsOfflineCopy(true);
       if (context) {
@@ -204,7 +304,7 @@ export default function AppointmentPrepareRoute() {
       setLoading(false);
       setGeneratingAI(false);
     }
-  }, [id, context, simulatedOutage]);
+  }, [id, context, simulatedOutage, personName, person?.backendSubjectId]);
 
   useEffect(() => {
     fetchAppointmentPrep();
@@ -229,6 +329,7 @@ export default function AppointmentPrepareRoute() {
 
   const handleShareWithDoctor = async () => {
     setSharing(true);
+    const targetDoctor = displayAppointment.doctor !== 'No Scheduled Doctor' ? displayAppointment.doctor : 'Care Circle Registry';
     try {
       const token = await authService.getAccessToken();
       const headers = {
@@ -241,7 +342,7 @@ export default function AppointmentPrepareRoute() {
         headers,
         body: JSON.stringify({
           subject_id: data.subject_id || id || 'dad',
-          doctor: data.appointment.doctor || 'Dr. Sharma',
+          doctor: targetDoctor,
           method: 'share'
         })
       });
@@ -249,34 +350,34 @@ export default function AppointmentPrepareRoute() {
       if (res.ok) {
         setLastAudit({
           action: 'appointment.summary_shared_export.v1',
-          doctor: data.appointment.doctor || 'Dr. Sharma',
+          doctor: targetDoctor,
           time: new Date().toLocaleTimeString(),
           status: 'Recorded in audit_log'
         });
         if (context) {
-          context.showToast(`Summary shared with ${data.appointment.doctor}'s registry. Audit logged.`);
+          context.showToast(`Summary shared with ${targetDoctor}. Audit logged.`);
         }
       } else {
         setLastAudit({
           action: 'appointment.summary_shared_export.v1',
-          doctor: data.appointment.doctor || 'Dr. Sharma',
+          doctor: targetDoctor,
           time: new Date().toLocaleTimeString(),
           status: 'Recorded in audit_log'
         });
         if (context) {
-          context.showToast(`Summary shared with ${data.appointment.doctor}.`);
+          context.showToast(`Summary shared with ${targetDoctor}.`);
         }
       }
     } catch (err) {
       console.warn('Share summary API failed:', err);
       setLastAudit({
         action: 'appointment.summary_shared_export.v1',
-        doctor: data.appointment.doctor || 'Dr. Sharma',
+        doctor: targetDoctor,
         time: new Date().toLocaleTimeString(),
         status: 'Recorded in audit_log'
       });
       if (context) {
-        context.showToast(`Summary shared with ${data.appointment.doctor}.`);
+        context.showToast(`Summary shared with ${targetDoctor}.`);
       }
     } finally {
       setSharing(false);
@@ -307,7 +408,7 @@ export default function AppointmentPrepareRoute() {
             <View>
               <Text className="text-lg font-black text-[#121c2a]">Prepare for {personName}'s appointment</Text>
               <Text className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-                {data.appointment.specialty} Consultation Prep • {data.appointment.time}
+                {displayAppointment.specialty} Consultation Prep • {displayAppointment.time}
               </Text>
             </View>
           </View>
@@ -383,14 +484,22 @@ export default function AppointmentPrepareRoute() {
                 <Calendar size={18} color="#2a14b4" />
               </View>
               <View>
-                <Text className="text-xs font-black text-slate-900">{data.appointment.doctor}</Text>
-                <Text className="text-[11px] text-slate-500 font-semibold">{data.appointment.location}</Text>
+                <Text className="text-xs font-black text-slate-900">{displayAppointment.doctor}</Text>
+                <Text className="text-[11px] text-slate-500 font-semibold">
+                  {displayAppointment.doctor === 'No Scheduled Doctor' && displayAppointment.location === 'Not scheduled'
+                    ? 'Tap Care to schedule visit'
+                    : displayAppointment.location}
+                </Text>
               </View>
             </View>
             {isOfflineCopy ? (
               <View className="bg-amber-100 px-2.5 py-1 rounded-full border border-amber-300 flex-row items-center gap-1">
                 <WifiOff size={10} color="#b45309" />
                 <Text className="text-[10px] font-black text-amber-800 uppercase">Offline Copy</Text>
+              </View>
+            ) : displayAppointment.doctor === 'No Scheduled Doctor' ? (
+              <View className="bg-slate-100 px-2.5 py-1 rounded-full border border-slate-200">
+                <Text className="text-[10px] font-black text-slate-600 uppercase">No Visit</Text>
               </View>
             ) : (
               <View className="bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-100">
@@ -470,8 +579,12 @@ export default function AppointmentPrepareRoute() {
               {/* BP Average */}
               <View className="flex-row items-center justify-between border-b border-slate-50 pb-3">
                 <View className="flex-row items-center gap-3">
-                  <View className="w-8 h-8 rounded-full bg-rose-50 items-center justify-center">
-                    <TrendingUp size={14} color="#ba1a1a" />
+                  <View
+                    className={`w-8 h-8 rounded-full ${
+                      hasBPLog ? 'bg-rose-50' : 'bg-slate-50'
+                    } items-center justify-center`}
+                  >
+                    <TrendingUp size={14} color={hasBPLog ? '#ba1a1a' : '#64748b'} />
                   </View>
                   <View>
                     <Text className="text-xs font-bold text-slate-800">Blood Pressure 7-Day Avg</Text>
@@ -479,8 +592,14 @@ export default function AppointmentPrepareRoute() {
                   </View>
                 </View>
                 <View className="items-end">
-                  <Text className="text-xs font-black text-[#ba1a1a]">{data.metrics_summary.bp_average_7d}</Text>
-                  <Text className="text-[9px] font-bold text-rose-600 uppercase">↑ Elevated</Text>
+                  <Text className={`text-xs font-black ${hasBPLog ? 'text-[#ba1a1a]' : 'text-slate-600'}`}>
+                    {data.metrics_summary.bp_average_7d}
+                  </Text>
+                  {hasBPLog ? (
+                    <Text className="text-[9px] font-bold text-rose-600 uppercase">↑ Elevated</Text>
+                  ) : (
+                    <Text className="text-[9px] font-bold text-slate-400 uppercase">Not logged</Text>
+                  )}
                 </View>
               </View>
 
@@ -537,33 +656,45 @@ export default function AppointmentPrepareRoute() {
               </Text>
             </View>
 
-            <View className="space-y-2">
-              {data.current_medications.map((med, idx) => (
-                <View
-                  key={idx}
-                  className="bg-white border border-[#e2dfd9] rounded-2xl p-4 shadow-xs flex-row items-center justify-between"
-                >
-                  <View className="flex-row items-center gap-3">
-                    <View className="w-8 h-8 rounded-full bg-indigo-50 items-center justify-center">
-                      <Pill size={15} color="#2a14b4" />
+            {displayMedications.length === 0 ? (
+              <View className="bg-white border border-[#e2dfd9] rounded-2xl p-5 items-center justify-center space-y-1">
+                <Pill size={20} color="#94a3b8" />
+                <Text className="text-xs font-bold text-slate-700 text-center">
+                  No active medications on record for {personName}
+                </Text>
+                <Text className="text-[10px] text-slate-400 text-center">
+                  Medications prescribed or logged in the care plan will appear here.
+                </Text>
+              </View>
+            ) : (
+              <View className="space-y-2">
+                {displayMedications.map((med, idx) => (
+                  <View
+                    key={idx}
+                    className="bg-white border border-[#e2dfd9] rounded-2xl p-4 shadow-xs flex-row items-center justify-between"
+                  >
+                    <View className="flex-row items-center gap-3">
+                      <View className="w-8 h-8 rounded-full bg-indigo-50 items-center justify-center">
+                        <Pill size={15} color="#2a14b4" />
+                      </View>
+                      <View>
+                        <Text className="text-xs font-black text-slate-900">
+                          {med.name} {med.dosage}
+                        </Text>
+                        <Text className="text-[10px] text-slate-400 font-semibold">
+                          {med.schedule}
+                        </Text>
+                      </View>
                     </View>
-                    <View>
-                      <Text className="text-xs font-black text-slate-900">
-                        {med.name} {med.dosage}
-                      </Text>
-                      <Text className="text-[10px] text-slate-400 font-semibold">
-                        {med.schedule}
+                    <View className="bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-100">
+                      <Text className="text-[9px] font-bold text-emerald-700 uppercase">
+                        {med.status}
                       </Text>
                     </View>
                   </View>
-                  <View className="bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-100">
-                    <Text className="text-[9px] font-bold text-emerald-700 uppercase">
-                      {med.status}
-                    </Text>
-                  </View>
-                </View>
-              ))}
-            </View>
+                ))}
+              </View>
+            )}
           </View>
 
           {/* DOCTOR QUESTIONS CHECKLIST (APT-003 requirement) */}
@@ -624,7 +755,11 @@ export default function AppointmentPrepareRoute() {
                 <Share2 size={16} color="#ffffff" />
               )}
               <Text className="text-white font-black text-xs uppercase tracking-wider">
-                {sharing ? 'Sharing & Logging...' : 'Share Summary with Doctor'}
+                {sharing
+                  ? 'Sharing & Logging...'
+                  : displayAppointment.doctor === 'No Scheduled Doctor'
+                  ? 'Share Summary with Care Circle'
+                  : 'Share Summary with Doctor'}
               </Text>
             </TouchableOpacity>
 
@@ -680,6 +815,21 @@ export default function AppointmentPrepareRoute() {
 
           <View className="h-24" />
         </ScrollView>
+
+        {/* Global Bottom Navigation Bar */}
+        <BottomNavBar
+          activeTab="parents"
+          currentScreen="doctor_consult"
+          onTabChange={(tab) => {
+            if (tab === 'home') router.push('/(coordinator)');
+            else if (tab === 'parents') router.push('/(coordinator)/parents');
+            else if (tab === 'ask') context.setAskAIOpen(true);
+            else if (tab === 'care') router.push('/(coordinator)/care');
+            else if (tab === 'profile') router.push('/(coordinator)/profile');
+          }}
+          onOpenQuickActions={() => context.setQuickActionsOpen(true)}
+          onOpenAskAI={() => context.setAskAIOpen(true)}
+        />
       </View>
       <SimulatorControls
         onTriggerNotification={context.handleTriggerSimulation}

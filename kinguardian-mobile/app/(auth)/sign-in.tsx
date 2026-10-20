@@ -55,12 +55,16 @@ export default function SignInRoute() {
     try {
       let session;
       if (isRegistering) {
+        const detectedTz =
+          typeof Intl !== 'undefined' && Intl.DateTimeFormat
+            ? Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
+            : 'UTC';
         session = await authService.register(
           name.trim(),
           email.trim(),
           password,
           role,
-          'Asia/Kolkata'
+          detectedTz
         );
       } else {
         session = await authService.login(
@@ -74,7 +78,11 @@ export default function SignInRoute() {
       if (userRole === 'parent') {
         router.replace('/(parent)');
       } else {
-        router.replace('/(coordinator)');
+        if (isRegistering) {
+          router.replace('/(auth)/location');
+        } else {
+          router.replace('/(coordinator)');
+        }
       }
     } catch (err: any) {
       const errorDetail = err?.message || 'Invalid email or password. Please verify credentials.';

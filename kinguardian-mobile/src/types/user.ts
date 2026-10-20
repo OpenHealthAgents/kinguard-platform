@@ -21,4 +21,7 @@ export interface DemoUser {
   relation: string;
   avatarUrl: string;
   email?: string;
+  city?: string;
+  country?: string;
+  timezone?: string;
 }

@@ -66,11 +66,36 @@ export default function CoordinatorParentsRoute() {
         </View>
 
         <ScrollView className="flex-1 px-5 pt-4 space-y-4">
-          {context.people.filter((p) => p.role !== 'coordinator' && (p.role === 'parent' || p.role === 'subject' || p.relation?.toLowerCase() === 'father' || p.relation?.toLowerCase() === 'mother' || p.id === 'dad' || p.id === 'mom' || (!p.role && p.relationship?.toLowerCase() !== 'coordinator'))).map((p) => {
-            const isActive = context.currentPersonId === p.id || context.currentPersonId === p.backendSubjectId;
-            const isDad = p.id === 'dad' || p.relation?.toLowerCase() === 'father' || p.relationship?.toLowerCase() === 'father';
-            const relationDisplay = p.relationship || p.relation || (isDad ? 'Father' : 'Mother');
-            const locationDisplay = p.location || p.city || 'Chennai, India';
+          {(() => {
+            const rawParents = context.people.filter(
+              (p) =>
+                p.role !== 'coordinator' &&
+                (p.role === 'parent' ||
+                  p.role === 'subject' ||
+                  p.relation?.toLowerCase() === 'father' ||
+                  p.relation?.toLowerCase() === 'mother' ||
+                  p.id === 'dad' ||
+                  p.id === 'mom' ||
+                  (!p.role && p.relationship?.toLowerCase() !== 'coordinator'))
+            );
+
+            // Deduplicate by name / relationship so identical parents are never duplicated
+            const seen = new Set<string>();
+            const uniqueParents = rawParents.filter((p) => {
+              const key = (p.name || '').trim().toLowerCase() || (p.relationship || '').trim().toLowerCase();
+              if (seen.has(key)) return false;
+              seen.add(key);
+              return true;
+            });
+
+            return uniqueParents.map((p) => {
+              const isActive = context.currentPersonId === p.id || context.currentPersonId === p.backendSubjectId;
+              const isDad = p.id === 'dad' || p.relation?.toLowerCase() === 'father' || p.relationship?.toLowerCase() === 'father';
+              const relationDisplay = p.relationship || p.relation || (isDad ? 'Father' : 'Mother');
+              const isLocationTimezone = Boolean(p.location && (p.location.includes('/') || p.location.toLowerCase().includes('kolkata')));
+              const locationDisplay = (p.city && p.city !== 'Not provided')
+                ? `${p.city}, ${p.country || 'India'}`
+                : (!isLocationTimezone && p.location ? p.location : 'Hyderabad, India');
 
             // Vitals check for alert status
             const bpSystolic = parseInt(context.currentBP.split('/')[0] || '120', 10);
@@ -229,7 +254,8 @@ export default function CoordinatorParentsRoute() {
                 </View>
               </TouchableOpacity>
             );
-          })}
+          });
+        })()}
 
           <View className="h-24" />
         </ScrollView>

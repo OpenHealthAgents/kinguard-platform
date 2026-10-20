@@ -22,6 +22,7 @@ import {
 import { authService } from '../../../../src/services/auth/authService';
 import { realDataService, WearableHealthSummary } from '../../../../src/services/api-client/RealDataService';
 import { CONFIG } from '../../../../src/constants/config';
+import { BottomNavBar } from '../../../../src/components/Navigation';
 
 export default function DoctorSummaryRoute() {
   const context = useContext(AppContext);
@@ -62,6 +63,12 @@ export default function DoctorSummaryRoute() {
   }, [id]);
 
   const isOutage = wearableSummary?.wearable_status === 'unavailable' || wearableSummary?.is_outage;
+  const isWearableConnected = Boolean(
+    wearableSummary &&
+    (wearableSummary as any).wearable_status !== 'disconnected' &&
+    wearableSummary.sync_status !== 'not_connected' &&
+    wearableSummary.source
+  );
 
   const handleToggleOutageSimulation = async () => {
     setTogglingOutage(true);
@@ -110,12 +117,50 @@ export default function DoctorSummaryRoute() {
 
   if (!context) return null;
 
-  const currentBP = context.currentBP;
-  const person = context.people.find((p) => p.id === id) || context.people[0];
+  const person = context.people.find((p) => p.id === id || p.backendSubjectId === id) || context.people[0];
   const personName = person ? person.name : 'Parent';
-  const personRelation = person?.relationship || person?.role || 'Care Subject';
-  const personAge = person?.age || 68;
-  const personLocation = person?.location || 'Chennai, India';
+  const personRelation = person?.relationship || person?.relation || person?.role || 'Care Subject';
+  const personAge = person?.age;
+  const personLocation = person?.location || (person?.city && person?.country ? `${person.city}, ${person.country}` : person?.city || null);
+
+  const medicationsList = (context.records || []).filter((r: any) =>
+    r.category === 'medications' &&
+    (!r.personId || r.personId === id || r.personId === person?.id || r.personId === person?.backendSubjectId)
+  );
+  const displayMedications = medicationsList.length > 0
+    ? medicationsList
+    : ((person as any)?.medications && (person as any).medications.length > 0 ? (person as any).medications : []);
+
+  const recentLabs = (context.records || []).filter((r: any) =>
+    (r.category === 'labs' || r.category === 'documents') &&
+    (!r.personId || r.personId === id || r.personId === person?.id || r.personId === person?.backendSubjectId)
+  );
+
+  const recentSymptoms = (context.records || []).filter((r: any) =>
+    r.category === 'symptoms' &&
+    (!r.personId || r.personId === id || r.personId === person?.id || r.personId === person?.backendSubjectId)
+  );
+
+  const nextAppointment = (context.appointments || []).find((a: any) =>
+    !a.personId || a.personId === id || a.personId === person?.id || a.personId === person?.backendSubjectId
+  );
+
+  const hasLoggedBP = Boolean(
+    context.currentBP &&
+    context.currentBP !== '--' &&
+    context.currentBP !== '-- / -- mmHg' &&
+    context.currentBP !== '138/88 mmHg' &&
+    context.currentBP.includes('/')
+  );
+  const displayBP = hasLoggedBP ? context.currentBP : '-- / -- mmHg';
+
+  const hasLoggedGlucose = Boolean(
+    context.currentGlucose &&
+    context.currentGlucose !== '--' &&
+    context.currentGlucose !== '98' &&
+    context.currentGlucose !== '-- mg/dL'
+  );
+  const displayGlucose = hasLoggedGlucose ? `${context.currentGlucose} mg/dL` : '-- mg/dL';
 
   const handleShareWithDoctor = async () => {
     setSharing(true);
@@ -126,20 +171,22 @@ export default function DoctorSummaryRoute() {
         'Content-Type': 'application/json'
       };
 
+      const targetDoctor = (nextAppointment as any)?.doctor || (nextAppointment as any)?.doctorName || 'Care Registry';
       await fetch(`${CONFIG.apiUrl}/api/v1/clinical/share-summary`, {
         method: 'POST',
         headers,
         body: JSON.stringify({
           subject_id: id || person?.id || 'dad',
-          doctor: 'Dr. Sharma',
+          doctor: targetDoctor,
           method: 'share'
         })
       });
 
-      context.showToast("Summary shared successfully with Dr. Sharma's registry!");
+      context.showToast(`Summary shared successfully with ${targetDoctor}!`);
     } catch (err) {
       console.warn('Share summary API failed:', err);
-      context.showToast("Summary shared successfully with Dr. Sharma's registry!");
+      const targetDoctor = (nextAppointment as any)?.doctor || (nextAppointment as any)?.doctorName || 'Care Registry';
+      context.showToast(`Summary shared successfully with ${targetDoctor}!`);
     } finally {
       setSharing(false);
     }
@@ -171,7 +218,11 @@ export default function DoctorSummaryRoute() {
               <View className="flex-row items-center gap-2">
                 <View
                   className={`w-2.5 h-2.5 rounded-full ${
-                    isOutage ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'
+                    !isWearableConnected
+                      ? 'bg-slate-400'
+                      : isOutage
+                      ? 'bg-amber-500 animate-pulse'
+                      : 'bg-emerald-500'
                   }`}
                 />
                 <Text className="text-[10px] font-black text-slate-500 uppercase tracking-wider">
@@ -180,48 +231,73 @@ export default function DoctorSummaryRoute() {
               </View>
               <View
                 className={`px-2 py-0.5 rounded-full border ${
-                  isOutage ? 'bg-amber-50 border-amber-200' : 'bg-emerald-50 border-emerald-200'
+                  !isWearableConnected
+                    ? 'bg-slate-100 border-slate-200'
+                    : isOutage
+                    ? 'bg-amber-50 border-amber-200'
+                    : 'bg-emerald-50 border-emerald-200'
                 }`}
               >
                 <Text
                   testID="parent-summary-telemetry-status"
                   className={`text-[9px] font-bold ${
-                    isOutage ? 'text-amber-800' : 'text-emerald-700'
+                    !isWearableConnected
+                      ? 'text-slate-600'
+                      : isOutage
+                      ? 'text-amber-800'
+                      : 'text-emerald-700'
                   }`}
                 >
-                  {isOutage ? '504 Outage Simulated' : '200 OK • Live Sync'}
+                  {!isWearableConnected
+                    ? 'NO SENSORS PAIRED'
+                    : isOutage
+                    ? '504 Outage Simulated'
+                    : '200 OK • Live Sync'}
                 </Text>
               </View>
             </View>
 
             <View className="flex-row items-center justify-between pt-1">
               <Text className="text-xs text-slate-600 font-semibold flex-1 pr-3">
-                {isOutage
+                {!isWearableConnected
+                  ? `No wearable sensors are paired for ${personName}. Telemetry will stream automatically once a device is connected.`
+                  : isOutage
                   ? 'Audit log updated: `wearable_api_unavailable`. Graceful degradation mode active.'
                   : 'Wearable data actively synchronizing from paired fitness hardware.'}
               </Text>
-              <TouchableOpacity
-                testID="parent-summary-outage-toggle"
-                onPress={handleToggleOutageSimulation}
-                disabled={togglingOutage}
-                className={`px-3 py-1.5 rounded-xl border active:scale-95 ${
-                  isOutage
-                    ? 'bg-[#2a14b4] border-[#2a14b4]'
-                    : 'bg-amber-50 border-amber-300'
-                }`}
-              >
-                <Text
-                  className={`text-[10px] font-black uppercase ${
-                    isOutage ? 'text-white' : 'text-amber-900'
+              {!isWearableConnected ? (
+                <TouchableOpacity
+                  onPress={() => router.push('/(coordinator)/devices')}
+                  className="px-3 py-1.5 rounded-xl border bg-blue-50 border-blue-200 active:bg-blue-100"
+                >
+                  <Text className="text-[10px] font-black uppercase text-blue-700">
+                    + Connect
+                  </Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  testID="parent-summary-outage-toggle"
+                  onPress={handleToggleOutageSimulation}
+                  disabled={togglingOutage}
+                  className={`px-3 py-1.5 rounded-xl border active:scale-95 ${
+                    isOutage
+                      ? 'bg-[#2a14b4] border-[#2a14b4]'
+                      : 'bg-amber-50 border-amber-300'
                   }`}
                 >
-                  {togglingOutage
-                    ? 'Syncing DB...'
-                    : isOutage
-                    ? 'Restore Wearables'
-                    : 'Simulate Outage (504)'}
-                </Text>
-              </TouchableOpacity>
+                  <Text
+                    className={`text-[10px] font-black uppercase ${
+                      isOutage ? 'text-white' : 'text-amber-900'
+                    }`}
+                  >
+                    {togglingOutage
+                      ? 'Syncing DB...'
+                      : isOutage
+                      ? 'Restore Wearables'
+                      : 'Simulate Outage (504)'}
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
           </View>
 
@@ -247,7 +323,7 @@ export default function DoctorSummaryRoute() {
               </Text>
               <Text testID="parent-summary-name" className="text-xl font-black text-slate-900">{personName} ({personRelation})</Text>
               <Text testID="parent-summary-demographics" className="text-xs text-slate-500 font-bold">
-                {personAge ? `${personAge} Years` : 'Age: Not provided'} · {personLocation || 'Location: Not provided'} · Apollo Hospital (Emergency Desk: 108)
+                {personAge ? `${personAge} Years` : 'Age: Not on file'} · {personLocation || 'Location: Not on file'} · Emergency Desk: 112 / 108
               </Text>
             </View>
 
@@ -260,14 +336,16 @@ export default function DoctorSummaryRoute() {
                 <Text className="text-xs text-slate-800 font-bold">
                   ⚠️ Known Allergies:{' '}
                   <Text className="text-slate-600 font-normal">
-                    {person?.conditions?.length ? 'No adverse drug allergies reported' : 'None reported (Verified)'}
+                    {(person as any)?.allergies && (person as any).allergies.length > 0
+                      ? (person as any).allergies.join(', ')
+                      : 'None reported (Unverified)'}
                   </Text>
                 </Text>
                 <Text className="text-xs text-slate-800 font-bold">
                   📋 Chronic Conditions:{' '}
                   <Text className="text-slate-600 font-normal">
-                    {person?.conditions && person.conditions.length > 0
-                      ? person.conditions.join(', ')
+                    {(person as any)?.conditions && (person as any).conditions.length > 0
+                      ? (person as any).conditions.join(', ')
                       : 'None on record'}
                   </Text>
                 </Text>
@@ -297,19 +375,31 @@ export default function DoctorSummaryRoute() {
 
             {/* Current Medications */}
             <View className="border-t border-slate-100 pt-4 space-y-2">
-              <Text className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                Current medications
-              </Text>
-              <View className="space-y-1.5">
-                <Text className="text-xs text-slate-800 font-bold">
-                  💊 Amlodipine 5mg{' '}
-                  <Text className="text-slate-400 font-semibold">(Daily Morning)</Text>
+              <View className="flex-row items-center justify-between">
+                <Text className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                  Current medications
                 </Text>
-                <Text className="text-xs text-slate-800 font-bold">
-                  💊 Atorvastatin 20mg{' '}
-                  <Text className="text-slate-400 font-semibold">(Daily Evening)</Text>
-                </Text>
+                <TouchableOpacity
+                  onPress={() => router.push('/(coordinator)/care')}
+                  className="bg-blue-50 px-2 py-0.5 rounded-lg border border-blue-200"
+                >
+                  <Text className="text-[9px] font-bold text-blue-700">+ Add Med</Text>
+                </TouchableOpacity>
               </View>
+              {displayMedications.length > 0 ? (
+                <View className="space-y-1.5">
+                  {displayMedications.map((m: any, idx: number) => (
+                    <Text key={m.id || idx} className="text-xs text-slate-800 font-bold">
+                      💊 {m.name || m.title || m.medication_ref}{' '}
+                      <Text className="text-slate-400 font-semibold">({m.dosage || m.time || m.timing || 'Active'})</Text>
+                    </Text>
+                  ))}
+                </View>
+              ) : (
+                <Text className="text-xs text-slate-500 font-medium">
+                  No active medications on record
+                </Text>
+              )}
             </View>
 
             {/* Recent Vitals & Wearable Telemetry (TEST WEAR-008 Graceful Degradation) */}
@@ -350,39 +440,45 @@ export default function DoctorSummaryRoute() {
 
               <View testID="wearables-summary-metrics" className="space-y-1.5">
                 <Text className="text-xs text-slate-800 font-bold">
-                  🩺 Blood Pressure: <Text className="font-black text-[#ba1a1a]">{currentBP}</Text>
+                  🩺 Blood Pressure: <Text className={hasLoggedBP ? "font-black text-[#ba1a1a]" : "font-semibold text-slate-500"}>{displayBP}</Text>
                 </Text>
                 <Text className="text-xs text-slate-800 font-bold">
-                  🩺 Fasting Sugar: <Text className="font-black text-[#059669]">98 mg/dL</Text>
+                  🩺 Fasting Sugar: <Text className={hasLoggedGlucose ? "font-black text-[#059669]" : "font-semibold text-slate-500"}>{displayGlucose}</Text>
                 </Text>
                 <Text className="text-xs text-slate-800 font-bold">
                   ⌚ Daily Activity:{' '}
                   <Text className="font-black text-slate-900">
-                    {wearableSummary ? wearableSummary.steps.toLocaleString() : '3,420'} steps
+                    {isWearableConnected && wearableSummary ? `${wearableSummary.steps.toLocaleString()} steps` : '-- (No sensor paired)'}
                   </Text>{' '}
-                  <Text className={isOutage ? 'text-amber-700 font-bold' : 'text-slate-400 font-semibold'}>
-                    {isOutage ? '(Cached Telemetry)' : '(Verified Ingest)'}
-                  </Text>
+                  {isWearableConnected && (
+                    <Text className={isOutage ? 'text-amber-700 font-bold' : 'text-slate-400 font-semibold'}>
+                      {isOutage ? '(Cached Telemetry)' : '(Verified Ingest)'}
+                    </Text>
+                  )}
                 </Text>
                 <Text className="text-xs text-slate-800 font-bold">
                   ❤️ Resting Heart Rate:{' '}
                   <Text className="font-black text-slate-900">
-                    {wearableSummary ? wearableSummary.heart_rate : 72} bpm
+                    {isWearableConnected && wearableSummary?.heart_rate ? `${wearableSummary.heart_rate} bpm` : '-- (No sensor paired)'}
                   </Text>{' '}
-                  <Text className={isOutage ? 'text-amber-700 font-bold' : 'text-slate-400 font-semibold'}>
-                    {isOutage ? '(Cached Baseline)' : '(Normal baseline)'}
-                  </Text>
+                  {isWearableConnected && (
+                    <Text className={isOutage ? 'text-amber-700 font-bold' : 'text-slate-400 font-semibold'}>
+                      {isOutage ? '(Cached Baseline)' : '(Normal baseline)'}
+                    </Text>
+                  )}
                 </Text>
                 <Text className="text-xs text-slate-800 font-bold">
                   🌙 Sleep Rest:{' '}
                   <Text className="font-black text-slate-900">
-                    {wearableSummary?.sleep_minutes
+                    {isWearableConnected && wearableSummary?.sleep_minutes
                       ? `${Math.floor(wearableSummary.sleep_minutes / 60)}h ${wearableSummary.sleep_minutes % 60}m`
-                      : '7h 00m'}
+                      : '-- (No sensor paired)'}
                   </Text>{' '}
-                  <Text className={isOutage ? 'text-amber-700 font-bold' : 'text-slate-400 font-semibold'}>
-                    {isOutage ? '(Cached Telemetry)' : '(475 mins total)'}
-                  </Text>
+                  {isWearableConnected && (
+                    <Text className={isOutage ? 'text-amber-700 font-bold' : 'text-slate-400 font-semibold'}>
+                      {isOutage ? '(Cached Telemetry)' : `(${wearableSummary?.sleep_minutes || 0} mins total)`}
+                    </Text>
+                  )}
                 </Text>
               </View>
             </View>
@@ -404,20 +500,45 @@ export default function DoctorSummaryRoute() {
                   </Text>
                 </TouchableOpacity>
               </View>
-              <Text className="text-xs text-slate-700 font-bold leading-relaxed">
-                📈 Midday step activity decreased by 35% over the last 5 days during elevated regional temperatures ({personName} resting indoors).
-              </Text>
+              {isWearableConnected ? (
+                <Text className="text-xs text-slate-700 font-bold leading-relaxed">
+                  📈 Daily step activity variance: {trendData.trend_variance} against 30-day baseline ({personName} active routines tracked).
+                </Text>
+              ) : (
+                <Text className="text-xs text-slate-500 font-medium leading-relaxed">
+                  No longitudinal wearable trends available yet. Baseline step and heart rate trends will generate once sensors are connected.
+                </Text>
+              )}
             </View>
 
             {/* Recent Labs */}
             <View className="border-t border-slate-100 pt-4 space-y-2">
-              <Text className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                Recent labs
-              </Text>
-              <Text className="text-xs text-slate-700 font-bold">
-                🧪 HbA1c: <Text className="font-black text-[#059669]">6.4%</Text> (Fasting Metabolic
-                panel - Aug 14)
-              </Text>
+              <View className="flex-row items-center justify-between">
+                <Text className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                  Recent labs
+                </Text>
+                <TouchableOpacity
+                  onPress={() => router.push('/(coordinator)/records')}
+                  className="bg-blue-50 px-2 py-0.5 rounded-lg border border-blue-200"
+                >
+                  <Text className="text-[9px] font-bold text-blue-700">+ Add Lab</Text>
+                </TouchableOpacity>
+              </View>
+              {recentLabs.length > 0 ? (
+                <View className="space-y-1.5">
+                  {recentLabs.map((lab: any, idx: number) => (
+                    <Text key={lab.id || idx} className="text-xs text-slate-800 font-bold">
+                      🧪 {lab.title || lab.name || 'Lab Panel'}:{' '}
+                      <Text className="font-black text-[#059669]">{lab.result || lab.value || 'Verified'}</Text>
+                      {lab.date ? <Text className="font-normal text-slate-500"> ({lab.date})</Text> : null}
+                    </Text>
+                  ))}
+                </View>
+              ) : (
+                <Text className="text-xs text-slate-500 font-medium">
+                  No recent laboratory panels on file.
+                </Text>
+              )}
             </View>
 
             {/* Symptoms */}
@@ -425,25 +546,50 @@ export default function DoctorSummaryRoute() {
               <Text className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
                 Symptoms
               </Text>
-              <Text className="text-xs text-slate-700 font-bold leading-relaxed">
-                😴 Mild fatigue registered during afternoon heat peaks. Verified staying
-                indoors in AC with hydration checklists.
-              </Text>
+              {recentSymptoms.length > 0 ? (
+                <View className="space-y-1.5">
+                  {recentSymptoms.map((sym: any, idx: number) => (
+                    <Text key={sym.id || idx} className="text-xs text-slate-700 font-bold leading-relaxed">
+                      ⚠️ {sym.title || sym.name || sym.symptom}: {sym.notes || sym.description || 'Reported during check-in.'}
+                    </Text>
+                  ))}
+                </View>
+              ) : (
+                <Text className="text-xs text-slate-500 font-medium leading-relaxed">
+                  No adverse symptoms reported in recent check-ins.
+                </Text>
+              )}
             </View>
 
             {/* Questions to Ask */}
             <View className="border-t border-slate-100 pt-4 space-y-2">
-              <Text className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                Questions for physician
-              </Text>
-              <View className="space-y-1.5">
-                <Text className="text-xs text-slate-700 font-semibold italic">
-                  {`"1. Should we adjust ${personName}'s afternoon diuretic timing on days when temperature peaks?"`}
+              <View className="flex-row items-center justify-between">
+                <Text className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                  Questions for physician
                 </Text>
-                <Text className="text-xs text-slate-700 font-semibold italic">
-                  {`"2. How does the recent 35% steps activity decline correlate with evening BP spikes?"`}
-                </Text>
+                <TouchableOpacity
+                  onPress={() => router.push(`/parent/${id || 'dad'}/prepare` as any)}
+                  className="bg-blue-50 px-2 py-0.5 rounded-lg border border-blue-200"
+                >
+                  <Text className="text-[9px] font-bold text-blue-700">+ Prepare Agenda</Text>
+                </TouchableOpacity>
               </View>
+              {displayMedications.length > 0 || hasLoggedBP ? (
+                <View className="space-y-1.5">
+                  <Text className="text-xs text-slate-700 font-semibold italic">
+                    {`"1. Review current medication schedule and dosage tolerance for ${personName}."`}
+                  </Text>
+                  {hasLoggedBP && (
+                    <Text className="text-xs text-slate-700 font-semibold italic">
+                      {`"2. Discuss recorded blood pressure readings (${displayBP}) and target clinical range."`}
+                    </Text>
+                  )}
+                </View>
+              ) : (
+                <Text className="text-xs text-slate-500 font-medium">
+                  No physician consultation questions flagged yet. Tap 'Prepare Agenda' to add visit topics.
+                </Text>
+              )}
             </View>
           </View>
 
@@ -484,7 +630,7 @@ export default function DoctorSummaryRoute() {
                       <Text className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 rounded">Operational</Text>
                     </View>
                     <Text className="text-[10px] text-slate-500 font-medium mt-0.5">
-                      Prescriptions, FHIR summaries, lab reports available
+                      {recentLabs.length > 0 ? `${recentLabs.length} document${recentLabs.length > 1 ? 's' : ''} available` : 'Prescriptions, FHIR summaries, lab reports available'}
                     </Text>
                   </View>
                 </View>
@@ -508,7 +654,7 @@ export default function DoctorSummaryRoute() {
                       <Text className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 rounded">Operational</Text>
                     </View>
                     <Text className="text-[10px] text-slate-500 font-medium mt-0.5">
-                      Dr. Sharma Cardiology video visit active & ready
+                      {nextAppointment ? `${(nextAppointment as any).doctor || (nextAppointment as any).title || 'Scheduled Visit'} (${nextAppointment.time || nextAppointment.date || 'Upcoming'})` : 'No upcoming visits scheduled'}
                     </Text>
                   </View>
                 </View>
@@ -532,18 +678,24 @@ export default function DoctorSummaryRoute() {
                       <Text className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 rounded">Operational</Text>
                     </View>
                     <Text className="text-[10px] text-slate-500 font-medium mt-0.5">
-                      Amlodipine 5mg & Atorvastatin 20mg active
+                      {displayMedications.length > 0 ? `${displayMedications.length} active prescription${displayMedications.length > 1 ? 's' : ''} on record` : 'No active medications on record'}
                     </Text>
                   </View>
                 </View>
                 <TouchableOpacity
                   onPress={() => {
-                    const activeMed = context.records?.find((r: any) => r.status === 'upcoming') || { id: 'rec-5' };
-                    context.sendMedicationReminder(activeMed.id);
+                    const activeMed = displayMedications[0] || context.records?.find((r: any) => r.category === 'medications' || r.status === 'upcoming');
+                    if (activeMed) {
+                      context.sendMedicationReminder(activeMed.id);
+                    } else {
+                      router.push('/(coordinator)/care');
+                    }
                   }}
                   className="bg-white border border-slate-200 px-3 py-1.5 rounded-xl active:scale-95 shadow-xs"
                 >
-                  <Text className="text-[10px] font-black text-[#2a14b4] uppercase">Remind</Text>
+                  <Text className="text-[10px] font-black text-[#2a14b4] uppercase">
+                    {displayMedications.length > 0 ? 'Remind' : 'Manage'}
+                  </Text>
                 </TouchableOpacity>
               </View>
 
@@ -689,7 +841,7 @@ export default function DoctorSummaryRoute() {
                     <View className="flex-row items-center gap-1.5">
                       <CheckCircle2 size={12} color="#059669" />
                       <Text className="text-[11px] font-bold text-slate-700">
-                        Deterministic: (3,420 - 5,200) / 5,200 = -34.2%
+                        Deterministic: ({trendData.current_value.toLocaleString()} - {trendData.baseline_30d.toLocaleString()}) / {trendData.baseline_30d.toLocaleString()} = {trendData.trend_variance}
                       </Text>
                     </View>
                     <View className="flex-row items-center gap-1.5">
@@ -713,6 +865,21 @@ export default function DoctorSummaryRoute() {
             </View>
           </View>
         </Modal>
+
+        {/* Global Bottom Navigation Bar */}
+        <BottomNavBar
+          activeTab="parents"
+          currentScreen="doctor_consult"
+          onTabChange={(tab) => {
+            if (tab === 'home') router.push('/(coordinator)');
+            else if (tab === 'parents') router.push('/(coordinator)/parents');
+            else if (tab === 'ask') context.setAskAIOpen(true);
+            else if (tab === 'care') router.push('/(coordinator)/care');
+            else if (tab === 'profile') router.push('/(coordinator)/profile');
+          }}
+          onOpenQuickActions={() => context.setQuickActionsOpen(true)}
+          onOpenAskAI={() => context.setAskAIOpen(true)}
+        />
       </View>
       <SimulatorControls
         onTriggerNotification={context.handleTriggerSimulation}

@@ -51,7 +51,7 @@ export class ApiFamilyService {
         }
 
         const family = await this.client.families.create({
-          name: 'KinGuardian Family',
+          name: 'Family Care Circle',
           home_timezone: 'Asia/Kolkata'
         });
         this.familyId = family.id;
@@ -143,11 +143,20 @@ export class ApiFamilyService {
 
             const defaultAvatar = isDad ? INITIAL_PEOPLE[0].avatarUrl : (isMom ? INITIAL_PEOPLE[1].avatarUrl : (idx % 2 === 0 ? INITIAL_PEOPLE[0].avatarUrl : INITIAL_PEOPLE[1].avatarUrl));
 
-            const subCity = registered.city || s.city || 'Not provided';
-            const subCountry = registered.country || s.country || s.country_code || (subCity !== 'Not provided' ? 'India' : 'Not provided');
-            const subLocation = (subCity !== 'Not provided' && subCountry !== 'Not provided')
-              ? `${subCity}, ${subCountry}`
-              : (subCity !== 'Not provided' ? subCity : subCountry);
+            const rawSubCity = (registered.city || s.city) && (registered.city !== 'Not provided' && s.city !== 'Not provided')
+              ? (registered.city || s.city)
+              : undefined;
+            const rawSubCountry = (registered.country || s.country || s.country_code) && (registered.country !== 'Not provided' && s.country !== 'Not provided')
+              ? (registered.country || s.country || s.country_code)
+              : undefined;
+            const subTzCity = (s.preferred_timezone && s.preferred_timezone.includes('/'))
+              ? s.preferred_timezone.split('/').pop()?.replace(/_/g, ' ')
+              : undefined;
+            const subCity = rawSubCity || (rawSubCountry ? (subTzCity || rawSubCountry) : 'Not provided');
+            const subCountry = rawSubCountry || (rawSubCity ? 'India' : 'Not provided');
+            const subLocation = (rawSubCity && rawSubCountry && rawSubCity !== rawSubCountry)
+              ? `${rawSubCity}, ${rawSubCountry}`
+              : (rawSubCountry || rawSubCity || 'Not provided');
 
             backendMembers.push({
               id: personId,
@@ -207,9 +216,16 @@ export class ApiFamilyService {
             if (isAniruddha) relation = 'Father';
             if (isVandana) relation = 'Mother';
 
-            const memberCity = m.city || 'Not provided';
-            const memberCountry = m.country || 'Not provided';
-            const memberLoc = m.location || (m.city && m.country ? `${m.city}, ${m.country}` : (m.city || m.country || 'Not provided'));
+            const rawMemberCity = (m.city && m.city !== 'Not provided') ? m.city : undefined;
+            const rawMemberCountry = (m.country && m.country !== 'Not provided') ? m.country : (m.location && m.location !== 'Not provided' ? m.location : undefined);
+            const tzMemberCity = (m.timezone && m.timezone.includes('/'))
+              ? m.timezone.split('/').pop()?.replace(/_/g, ' ')
+              : undefined;
+            const memberCity = rawMemberCity || (rawMemberCountry ? (tzMemberCity || rawMemberCountry) : 'Not provided');
+            const memberCountry = rawMemberCountry || (rawMemberCity ? 'India' : 'Not provided');
+            const memberLoc = (rawMemberCity && rawMemberCountry && rawMemberCity !== rawMemberCountry)
+              ? `${rawMemberCity}, ${rawMemberCountry}`
+              : (rawMemberCountry || rawMemberCity || (m.location && m.location !== 'Not provided' ? m.location : 'Not provided'));
 
             backendMembers.push({
               id: memberProfileId || `member-${mIdx}`,

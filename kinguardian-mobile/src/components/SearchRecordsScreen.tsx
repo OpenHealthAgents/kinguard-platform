@@ -11,7 +11,8 @@ import {
   Activity,
   Upload,
   CheckCircle2,
-  FolderOpen
+  FolderOpen,
+  Clock
 } from 'lucide-react-native';
 import { HealthRecordItem, DocumentItem } from '../types';
 import { DocumentVault } from './DocumentVault';
@@ -96,10 +97,13 @@ export const SearchRecordsScreen: React.FC<SearchRecordsScreenProps> = ({
   showToast
 }) => {
   const context = useContext(AppContext);
-  const parentName =
-    context?.people.find((person) => person.id === context.currentPersonId || person.backendSubjectId === context.currentPersonId)?.name ||
-    context?.familyMembers.find((person) => person.id === context.currentPersonId || person.backendSubjectId === context.currentPersonId)?.name ||
-    'Parent';
+  const isMockData = process.env.EXPO_PUBLIC_USE_MOCK_DATA === 'true';
+  const activePerson =
+    context?.people.find((person) => person.id === context.currentPersonId || person.backendSubjectId === context.currentPersonId) ||
+    context?.people[0];
+  const parentName = activePerson?.name || 'Parent';
+  const targetSubjectId = activePerson?.backendSubjectId || (activePerson?.id && activePerson.id !== 'dad' && activePerson.id !== 'mom' ? activePerson.id : undefined);
+
   const [activeSegment, setActiveSegment] = useState<'search' | 'vault'>('search');
   const [searchQuery, setSearchQuery] = useState('');
   const [timelineFilter, setTimelineFilter] = useState<
@@ -117,7 +121,7 @@ export const SearchRecordsScreen: React.FC<SearchRecordsScreenProps> = ({
     try {
       if (!isInitial) setIsLoadingMore(true);
       const cursorToUse = isInitial ? undefined : (nextCursor || undefined);
-      const res = await realDataService.getSubjectTimeline('dad', cursorToUse, 10);
+      const res = await realDataService.getSubjectTimeline(targetSubjectId, cursorToUse, 10);
       if (res && res.events && res.events.length > 0) {
         const mapped: TimelineItem[] = res.events.map((ev: any) => {
           let cat: TimelineItem['category'] = 'vital';
@@ -153,19 +157,19 @@ export const SearchRecordsScreen: React.FC<SearchRecordsScreenProps> = ({
         setNextCursor(res.next_cursor);
         setHasMore(Boolean(res.has_more));
       } else if (isInitial) {
-        setDbTimelineEvents(timelineData);
+        setDbTimelineEvents(isMockData ? timelineData : []);
       }
     } catch (err) {
       console.warn('Failed to fetch real timeline:', err);
-      if (isInitial) setDbTimelineEvents(timelineData);
+      if (isInitial) setDbTimelineEvents(isMockData ? timelineData : []);
     } finally {
       setIsLoadingMore(false);
     }
-  }, [nextCursor]);
+  }, [nextCursor, targetSubjectId, isMockData]);
 
   useEffect(() => {
     fetchTimeline(true);
-  }, []);
+  }, [targetSubjectId]);
 
   const handleSearch = async (text: string) => {
     setSearchQuery(text);
@@ -197,7 +201,7 @@ export const SearchRecordsScreen: React.FC<SearchRecordsScreenProps> = ({
     { id: 'symptom', label: 'Symptoms' }
   ] as const;
 
-  const currentTimelineData = dbTimelineEvents.length > 0 ? dbTimelineEvents : timelineData;
+  const currentTimelineData = dbTimelineEvents.length > 0 ? dbTimelineEvents : (isMockData ? timelineData : []);
   const displayTimelineData = useMemo(
     () => currentTimelineData.map((item) => ({ ...item, subtitle: item.subtitle.replace(/\b(?:Parent|Dad)\b/g, parentName) })),
     [currentTimelineData, parentName]
@@ -386,7 +390,9 @@ export const SearchRecordsScreen: React.FC<SearchRecordsScreenProps> = ({
                 Document Vault & Lab Reports ({documents.length})
               </Text>
               <Text className="text-[9px] text-neutral-500 font-medium">
-                Apollo_Panel_2026.pdf ready for review
+                {documents.length > 0
+                  ? ((documents[0] as any).title || (documents[0] as any).name || 'Clinical documents ready for review')
+                  : 'No clinical documents uploaded yet'}
               </Text>
             </View>
           </View>
@@ -483,9 +489,15 @@ export const SearchRecordsScreen: React.FC<SearchRecordsScreenProps> = ({
             </Text>
 
             {Object.keys(groupedTimeline).length === 0 ? (
-              <View className="bg-white rounded-2xl p-6 border border-neutral-200/80 items-center justify-center">
-                <Text className="text-xs font-semibold text-neutral-400">
-                  No items match this filter.
+              <View className="bg-white rounded-2xl p-8 border border-neutral-200/80 items-center justify-center space-y-2">
+                <Clock size={28} color="#94a3b8" />
+                <Text className="text-sm font-bold text-slate-700">
+                  {timelineFilter !== 'all' ? 'No items match this filter' : 'No timeline events recorded yet'}
+                </Text>
+                <Text className="text-xs text-slate-500 font-medium text-center max-w-[280px]">
+                  {timelineFilter !== 'all'
+                    ? `No ${timelineFilter} records logged for ${parentName}.`
+                    : `Events such as medication confirmations, recorded vitals, appointments, and check-ins for ${parentName} will appear here.`}
                 </Text>
               </View>
             ) : (

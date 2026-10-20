@@ -12,7 +12,7 @@ export interface DocumentService {
 export class ApiDocumentService implements DocumentService {
   private client: DrGodlyApiClient;
   private familyService: ApiFamilyService;
-  private docs: HealthDocument[] = [...INITIAL_DOCUMENTS];
+  private docs: HealthDocument[] = process.env.EXPO_PUBLIC_USE_MOCK_DATA === 'true' ? [...INITIAL_DOCUMENTS] : [];
 
   constructor(baseUrl: string = CONFIG.apiUrl, familyService?: ApiFamilyService) {
     this.client = new DrGodlyApiClient({ baseUrl });
@@ -28,25 +28,29 @@ export class ApiDocumentService implements DocumentService {
       if (backendDocs && backendDocs.length > 0) {
         const liveDocs: HealthDocument[] = backendDocs.map((d: any) => ({
           id: d.id,
-          name: d.filenest_file_id || 'Medical Report',
+          name: d.filenest_file_id || d.name || 'Medical Report',
           date: d.created_at ? new Date(d.created_at).toLocaleDateString([], { month: 'short', day: 'numeric' }) : 'Recent',
           category: d.classification || 'Diagnostic Lab',
-          size: '1.2 MB',
-          summary: `Verified document: ${d.classification || 'Clinical record'}. Classification: ${d.status || 'Active'}.`,
-          status: 'parsed',
+          size: d.size || '1.2 MB',
+          summary: d.summary || `Verified document: ${d.classification || 'Clinical record'}. Classification: ${d.status || 'Active'}.`,
+          status: (d.status as any) || 'ready',
           uploadedAt: d.created_at || new Date().toISOString(),
-          uploader: 'Care Team',
-          personId: personId || 'dad'
+          uploader: d.uploader || 'Care Team',
+          personId: personId || subjectId || 'dad'
         }));
 
-        const combined = [...liveDocs, ...this.docs.filter((d) => !liveDocs.some((l) => l.id === d.id || l.name === d.name))];
-        this.docs = combined;
-        return combined;
+        this.docs = liveDocs;
+        return liveDocs;
+      } else if (process.env.EXPO_PUBLIC_USE_MOCK_DATA !== 'true') {
+        this.docs = [];
+        return [];
       }
     } catch (err) {
       console.warn('ApiDocumentService: Failed to fetch documents from database:', err);
     }
-    return this.docs.filter((d) => !personId || d.personId === personId || !d.personId);
+    return process.env.EXPO_PUBLIC_USE_MOCK_DATA === 'true'
+      ? this.docs.filter((d) => !personId || d.personId === personId || !d.personId)
+      : this.docs;
   }
 
   async uploadDocument(newDoc: HealthDocument): Promise<HealthDocument> {

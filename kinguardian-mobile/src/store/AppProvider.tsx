@@ -277,19 +277,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [currentPersonId, setCurrentPersonId] = useState<string>('dad');
   const [observations, setObservations] =
     useState<Record<string, HealthObservation>>(INITIAL_OBSERVATIONS);
-  const [records, setRecords] = useState<HealthRecordItem[]>(INITIAL_HEALTH_RECORDS);
+  const [records, setRecords] = useState<HealthRecordItem[]>(
+    process.env.EXPO_PUBLIC_USE_MOCK_DATA === 'true' ? INITIAL_HEALTH_RECORDS : []
+  );
   const [recentSearches, setRecentSearches] = useState<string[]>(INITIAL_RECENT_SEARCHES);
 
   // Interactive prototype states - only load mock notifications if explicitly in prototype demo mode
   const [notifications, setNotifications] = useState<AppNotification[]>(
     process.env.EXPO_PUBLIC_USE_MOCK_DATA === 'true' ? INITIAL_NOTIFICATIONS : []
   );
-  const [documents, setDocuments] = useState<DocumentItem[]>(INITIAL_DOCUMENTS);
-  const [syncLogs, setSyncLogs] = useState<SyncLog[]>(INITIAL_SYNC_LOGS);
+  const [documents, setDocuments] = useState<DocumentItem[]>(
+    process.env.EXPO_PUBLIC_USE_MOCK_DATA === 'true' ? INITIAL_DOCUMENTS : []
+  );
+  const [syncLogs, setSyncLogs] = useState<SyncLog[]>(
+    process.env.EXPO_PUBLIC_USE_MOCK_DATA === 'true' ? INITIAL_SYNC_LOGS : []
+  );
 
   // Real-time Vitals Telemetry States
-  const [currentBP, setCurrentBP] = useState('138/88 mmHg');
-  const [currentGlucose, setCurrentGlucose] = useState('98');
+  const isMockData = process.env.EXPO_PUBLIC_USE_MOCK_DATA === 'true';
+  const [currentBP, setCurrentBP] = useState(isMockData ? '138/88 mmHg' : '--');
+  const [currentGlucose, setCurrentGlucose] = useState(isMockData ? '98' : '--');
   const [isSyncing, setIsSyncing] = useState(false);
 
   // Overlays
@@ -301,19 +308,27 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [currentLoopStep, setCurrentLoopStep] = useState(0);
 
   // Vital readings history stores
-  const [bpHistory, setBpHistory] = useState<any[]>([
-    { date: 'Today', time: '8:45 PM', systolic: 138, diastolic: 88, source: 'Omron Monitor' },
-    { date: 'Aug 16', time: '8:30 PM', systolic: 136, diastolic: 86, source: 'Omron Monitor' },
-    { date: 'Aug 15', time: '9:10 PM', systolic: 140, diastolic: 90, source: 'Apple Health' },
-    { date: 'Aug 14', time: '8:15 PM', systolic: 134, diastolic: 84, source: 'Omron Monitor' }
-  ]);
+  const [bpHistory, setBpHistory] = useState<any[]>(
+    isMockData
+      ? [
+          { date: 'Today', time: '8:45 PM', systolic: 138, diastolic: 88, source: 'Omron Monitor' },
+          { date: 'Aug 16', time: '8:30 PM', systolic: 136, diastolic: 86, source: 'Omron Monitor' },
+          { date: 'Aug 15', time: '9:10 PM', systolic: 140, diastolic: 90, source: 'Apple Health' },
+          { date: 'Aug 14', time: '8:15 PM', systolic: 134, diastolic: 84, source: 'Omron Monitor' }
+        ]
+      : []
+  );
 
-  const [glucoseHistory, setGlucoseHistory] = useState<any[]>([
-    { date: 'Today', time: '8:00 AM', glucose: 98, source: 'Dexcom G7 CGM' },
-    { date: 'Yesterday', time: '8:15 AM', glucose: 102, source: 'Dexcom G7 CGM' },
-    { date: 'Aug 15', time: '8:00 AM', glucose: 94, source: 'Dexcom G7 CGM' },
-    { date: 'Aug 14', time: '8:30 AM', glucose: 96, source: 'Dexcom G7 CGM' }
-  ]);
+  const [glucoseHistory, setGlucoseHistory] = useState<any[]>(
+    isMockData
+      ? [
+          { date: 'Today', time: '8:00 AM', glucose: 98, source: 'Dexcom G7 CGM' },
+          { date: 'Yesterday', time: '8:15 AM', glucose: 102, source: 'Dexcom G7 CGM' },
+          { date: 'Aug 15', time: '8:00 AM', glucose: 94, source: 'Dexcom G7 CGM' },
+          { date: 'Aug 14', time: '8:30 AM', glucose: 96, source: 'Dexcom G7 CGM' }
+        ]
+      : []
+  );
 
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
     {
@@ -382,7 +397,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (storedScenario) setCurrentScenario(storedScenario as any);
 
         const storedBP = await AsyncStorage.getItem('kinguardian_bp');
-        if (storedBP) setCurrentBP(storedBP);
+        if (storedBP && (isMockData || (storedBP !== '138/88 mmHg' && storedBP !== '--'))) setCurrentBP(storedBP);
 
         const storedPeople = await AsyncStorage.getItem('kinguardian_people');
         if (storedPeople) setPeople(JSON.parse(storedPeople));
@@ -394,13 +409,34 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
 
         const storedNotifs = await AsyncStorage.getItem('kinguardian_notifications');
-        if (storedNotifs) setNotifications(JSON.parse(storedNotifs));
+        if (storedNotifs) {
+          try {
+            const parsed = JSON.parse(storedNotifs);
+            if (Array.isArray(parsed)) {
+              const cleanNotifs = process.env.EXPO_PUBLIC_USE_MOCK_DATA === 'true'
+                ? parsed
+                : parsed.filter((n: any) => !n.id?.startsWith('notif-c-') && !n.id?.startsWith('notif-p-'));
+              setNotifications(cleanNotifs);
+            }
+          } catch {
+            setNotifications([]);
+          }
+        }
 
         const storedTasks = await AsyncStorage.getItem('kinguardian_tasks');
         if (storedTasks) setCareTasks(JSON.parse(storedTasks));
 
         const storedRecords = await AsyncStorage.getItem('kinguardian_records');
-        if (storedRecords) setRecords(JSON.parse(storedRecords));
+        if (storedRecords) {
+          try {
+            const parsed = JSON.parse(storedRecords);
+            if (Array.isArray(parsed)) {
+              setRecords(process.env.EXPO_PUBLIC_USE_MOCK_DATA === 'true' ? parsed : parsed.filter((r: any) => !r.id?.startsWith('rec-')));
+            }
+          } catch {
+            setRecords([]);
+          }
+        }
       } catch (err) {
         console.warn('Failed to load persisted offline state:', err);
       }
@@ -429,26 +465,36 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           u.displayName?.replace(/\s*\((coordinator|parent|caregiver)\)/i, '').replace(/Sync\s*\d+/i, '').trim() ||
           (u.email ? u.email.split('@')[0] : (role === 'parent' ? 'Parent' : (role === 'caregiver' ? 'Caregiver' : 'Coordinator')));
 
-        let userLoc = u.location || '';
+        let userLoc = (u.location && u.location.toLowerCase() !== 'not provided') ? u.location : '';
         if (!userLoc) {
-          if (u.city && u.country) {
+          if (u.city && u.country && u.city.toLowerCase() !== 'not provided' && u.country.toLowerCase() !== 'not provided') {
             userLoc = `${u.city}, ${u.country}`;
-          } else if (u.country) {
+          } else if (u.country && u.country.toLowerCase() !== 'not provided') {
             userLoc = u.country;
-          } else if (u.city) {
+          } else if (u.city && u.city.toLowerCase() !== 'not provided') {
             userLoc = u.city;
-          } else if (u.timezone) {
-            userLoc = u.timezone;
+          } else if (u.timezone && u.timezone.includes('/')) {
+            userLoc = u.timezone.split('/').pop()?.replace(/_/g, ' ') || u.timezone;
           } else {
-            userLoc = 'Not provided';
+            userLoc = 'Local';
           }
         }
+
+        const derivedCity = (u.city && u.city.toLowerCase() !== 'not provided')
+          ? u.city
+          : (u.timezone && u.timezone.includes('/') ? u.timezone.split('/').pop()?.replace(/_/g, ' ') : (userLoc !== 'Local' ? userLoc : undefined));
+        const derivedCountry = (u.country && u.country.toLowerCase() !== 'not provided')
+          ? u.country
+          : (userLoc !== 'Local' ? userLoc : undefined);
 
         setCurrentUser({
           id: u.id,
           name: cleanName,
           age: role === 'parent' ? 68 : (role === 'caregiver' ? 28 : 36),
           location: userLoc,
+          city: derivedCity,
+          country: derivedCountry,
+          timezone: u.timezone,
           role,
           relation: role === 'parent' ? 'Parent' : (role === 'caregiver' ? 'Caregiver' : 'Coordinator'),
           avatarUrl: role === 'parent' ? (INITIAL_PEOPLE[0].avatarUrl || 'https://images.unsplash.com/photo-1544005313-94ddf0286df2') : (INITIAL_PEOPLE[2].avatarUrl || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330'),
@@ -617,8 +663,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (liveMsgs.status === 'fulfilled' && liveMsgs.value?.length > 0) {
         setChatMessages(liveMsgs.value);
       }
-      if (liveNotifs.status === 'fulfilled' && liveNotifs.value?.length > 0) {
-        setNotifications(liveNotifs.value);
+      if (liveNotifs.status === 'fulfilled' && Array.isArray(liveNotifs.value)) {
+        if (process.env.EXPO_PUBLIC_USE_MOCK_DATA === 'true') {
+          if (liveNotifs.value.length > 0) {
+            setNotifications(liveNotifs.value);
+          }
+        } else {
+          setNotifications(liveNotifs.value);
+        }
       }
       if (liveEvents.status === 'fulfilled' && liveEvents.value?.length > 0) {
         setRecords(liveEvents.value as any);

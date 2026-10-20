@@ -157,7 +157,10 @@ class AuthService {
       displayName: userData?.display_name || userData?.name || 'KinGuardian User',
       timezone: userData?.timezone || userData?.zoneinfo || 'Asia/Kolkata',
       role: userRole,
-      permissions
+      permissions,
+      city: userData?.city,
+      country: userData?.country,
+      location: userData?.location || (userData?.city && userData?.country ? `${userData.city}, ${userData.country}` : (userData?.country || userData?.city))
     };
 
     this.inMemoryAccessToken = tokens.access_token;

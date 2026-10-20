@@ -1,4 +1,4 @@
-import React, { useContext, useState, useEffect, useCallback } from 'react';
+import React, { useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Image, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { AppContext } from '../store/AppContext';
@@ -26,7 +26,9 @@ import {
   Stethoscope,
   User,
   Search,
-  X
+  X,
+  Plus,
+  Users
 } from 'lucide-react-native';
 import { HealthObservation, Person } from '../types';
 import { BrandLogo } from './ui/BrandLogo';
@@ -179,13 +181,29 @@ export const HealthDashboard: React.FC<HealthDashboardProps> = ({
     (people.filter((p) => p.role !== 'coordinator')[0] || null);
 
   let rawExtName = '';
-  if (candidatePerson?.external_patient_ref) {
-    if (typeof candidatePerson.external_patient_ref === 'string') {
+  let rawExtCity = '';
+  let rawExtCountry = '';
+  const extRefSource = candidatePerson?.external_patient_ref
+    ? candidatePerson
+    : (careSubjects || []).find((s: any) =>
+        s.id === candidatePerson?.id ||
+        s.id === candidatePerson?.backendSubjectId ||
+        s.name === candidatePerson?.name ||
+        (s.external_patient_ref && typeof s.external_patient_ref === 'string' && candidatePerson?.name && s.external_patient_ref.includes(candidatePerson.name))
+      );
+
+  if (extRefSource?.external_patient_ref) {
+    if (typeof extRefSource.external_patient_ref === 'string') {
       try {
-        rawExtName = JSON.parse(candidatePerson.external_patient_ref || '{}').name || '';
+        const parsed = JSON.parse(extRefSource.external_patient_ref || '{}');
+        rawExtName = parsed.name || '';
+        rawExtCity = parsed.city || '';
+        rawExtCountry = parsed.country || '';
       } catch (e) {}
-    } else if (typeof candidatePerson.external_patient_ref === 'object') {
-      rawExtName = candidatePerson.external_patient_ref.name || '';
+    } else if (typeof extRefSource.external_patient_ref === 'object') {
+      rawExtName = extRefSource.external_patient_ref.name || '';
+      rawExtCity = extRefSource.external_patient_ref.city || '';
+      rawExtCountry = extRefSource.external_patient_ref.country || '';
     }
   }
 
@@ -198,14 +216,49 @@ export const HealthDashboard: React.FC<HealthDashboardProps> = ({
     ? (fatherPerson.name.charAt(0).toUpperCase() + fatherPerson.name.slice(1))
     : primaryName;
 
+  const matchingFamMember = (familyMembers || []).find((m: any) =>
+    m.role === 'parent' &&
+    ((m.id && candidatePerson?.id && m.id === candidatePerson.id) ||
+     (m.profile_id && candidatePerson?.backendSubjectId && m.profile_id === candidatePerson.backendSubjectId) ||
+     (m.name && candidatePerson?.name && m.name.toLowerCase() === candidatePerson.name.toLowerCase()))
+  );
+
+  const resolvedCity = (candidatePerson?.city && candidatePerson.city !== 'Not provided')
+    ? candidatePerson.city
+    : (rawExtCity || matchingFamMember?.city || 'Hyderabad');
+
+  const rawCountry = (candidatePerson?.country && candidatePerson.country !== 'Not provided')
+    ? candidatePerson.country
+    : (rawExtCountry || matchingFamMember?.country || 'India');
+  const resolvedCountry = (rawCountry === 'IN' || rawCountry === 'IND') ? 'India' : rawCountry;
+
+  const fallbackLocationStr = resolvedCity ? `${resolvedCity}, ${resolvedCountry}` : (resolvedCountry || 'India');
+
+  const candidateLocation = candidatePerson?.location;
+  const isCandidateLocationTimezone = Boolean(candidateLocation && (candidateLocation.includes('/') || candidateLocation.toLowerCase().includes('kolkata')));
+
+  const primaryLocation = (candidateLocation && candidateLocation !== 'Not provided' && !isCandidateLocationTimezone)
+    ? candidateLocation
+    : fallbackLocationStr;
+
   const primaryPerson = candidatePerson
     ? {
         ...candidatePerson,
-        name: primaryName
+        name: primaryName,
+        location: primaryLocation
       }
     : { id: 'dad', name: primaryName, location: 'Chennai, India' };
 
-  const primaryLocation = candidatePerson?.location || (candidatePerson && candidatePerson.city && candidatePerson.city !== 'Not provided' ? `${candidatePerson.city}, ${candidatePerson.country || 'India'}` : (candidatePerson?.city || candidatePerson?.country || 'Not provided'));
+  const isDemoDad =
+    (primaryName.toLowerCase().includes('ramesh') || primaryName.toLowerCase().includes('father')) ||
+    (primaryPerson?.id === 'dad' && !primaryName.toLowerCase().includes('jane') && !primaryName.toLowerCase().includes('mother') && !primaryName.toLowerCase().includes('mom'));
+
+  const primaryPersonAppt = (context?.appointments || []).find(
+    (a) => (a.personId === primaryPerson?.id || a.personId === primaryPerson?.backendSubjectId) && a.status === 'upcoming'
+  );
+  const primaryPersonMeds = (context?.medications || []).filter(
+    (m) => m.personId === primaryPerson?.id || m.personId === primaryPerson?.backendSubjectId
+  );
 
 
   // Get latest check-in mood from real data
@@ -307,6 +360,12 @@ export const HealthDashboard: React.FC<HealthDashboardProps> = ({
 
   // Live Wearable Telemetry State from PostgreSQL / SQLite Database
   const [wearableSummary, setWearableSummary] = useState<WearableHealthSummary | null>(null);
+  const isWearableConnected = Boolean(
+    wearableSummary &&
+    (wearableSummary as any).wearable_status !== 'disconnected' &&
+    wearableSummary.sync_status !== 'not_connected' &&
+    wearableSummary.source
+  );
 
   const loadWearables = useCallback(async () => {
     try {
@@ -348,7 +407,7 @@ export const HealthDashboard: React.FC<HealthDashboardProps> = ({
     const unsubscribe = typeof googleFitService?.subscribe === 'function'
       ? googleFitService.subscribe((data) => {
           if (!isMounted) return;
-          if (data.isConnected || data.steps > 0 || data.source !== 'none') {
+          if (data.isConnected && (data.steps > 0 || (data.source && data.source !== 'none'))) {
             setWearableSummary((prev) => {
               return {
                 subject_id: primaryPerson?.id || 'dad',
@@ -383,7 +442,9 @@ export const HealthDashboard: React.FC<HealthDashboardProps> = ({
   const [appointmentModalOpen, setAppointmentModalOpen] = useState(false);
   const [appointmentData, setAppointmentData] = useState<any>(null);
   const [appointmentLoading, setAppointmentLoading] = useState(false);
-  const [selectedRecipient, setSelectedRecipient] = useState('Dr. Sharma (Cardiology)');
+  const [selectedRecipient, setSelectedRecipient] = useState(
+    isDemoDad ? 'Dr. Sharma (Cardiology)' : 'Attending Physician'
+  );
   const [shareSuccessMessage, setShareSuccessMessage] = useState('');
   const [checkedQuestions, setCheckedQuestions] = useState<Record<number, boolean>>({
     0: true,
@@ -396,8 +457,14 @@ export const HealthDashboard: React.FC<HealthDashboardProps> = ({
     setAppointmentModalOpen(true);
     setShareSuccessMessage('');
     try {
-      const prep = await realDataService.getAppointmentPreparation('current', primaryPerson?.id);
+      const prep = await realDataService.getAppointmentPreparation(
+        'current',
+        primaryPerson?.backendSubjectId || primaryPerson?.id
+      );
       setAppointmentData(prep);
+      if (prep?.permitted_recipients?.length > 0) {
+        setSelectedRecipient(prep.permitted_recipients[0]);
+      }
     } catch (e) {
       console.warn('Failed to load appointment prep:', e);
     } finally {
@@ -420,115 +487,123 @@ export const HealthDashboard: React.FC<HealthDashboardProps> = ({
     }
   };
 
+  const displayFamilyName = useMemo(() => {
+    if (!familyName || familyName.toLowerCase() === 'kinguardian family') {
+      const coordName = (coordinatorName || currentUserName || '').trim();
+      const coordParts = coordName.split(' ').filter(Boolean);
+      if (coordParts.length > 1) {
+        return `${coordParts[coordParts.length - 1]} Family Care Circle`;
+      }
+      if (primaryPerson?.name) {
+        const parentParts = primaryPerson.name.split(' ').filter(Boolean);
+        if (parentParts.length > 1) {
+          return `${parentParts[parentParts.length - 1]} Family Care Circle`;
+        }
+        return `${primaryPerson.name}'s Care Circle`;
+      }
+      return 'Family Care Circle';
+    }
+    return familyName;
+  }, [familyName, coordinatorName, currentUserName, primaryPerson?.name]);
+
   return (
     <View className="flex-1 bg-gradient-to-b from-slate-50 via-white to-slate-50">
-      {/* Header Profile / Timezone translation */}
-      <View className="w-full bg-white/80 backdrop-blur-xl border-b border-slate-100/50 pt-8 pb-6 px-6 space-y-4 shadow-sm">
+      {/* Sleek, Compact Sticky Top Bar */}
+      <View className="w-full bg-white/95 backdrop-blur-md border-b border-slate-200/80 pt-3 pb-2.5 px-5 shadow-xs z-20">
         <View className="flex-row items-center justify-between">
-          <View className="flex-1 pr-4">
-            <View className="flex-row items-center gap-2 flex-wrap">
-              <BrandLogo size="sm" testID="coordinator-brand-logo" />
-              <View className="bg-gradient-to-r from-blue-500 to-blue-600 px-3 py-1 rounded-full">
-                <Text className="text-[10px] font-bold text-white uppercase tracking-wider">
-                  Coordinator Portal
-                </Text>
-              </View>
-              {familyName ? (
-                <View className="bg-slate-100 px-3 py-1 rounded-full border border-slate-200">
-                  <Text className="text-[10px] font-bold text-slate-700">{familyName}</Text>
-                </View>
-              ) : null}
-              <View
-                className={`px-3 py-1 rounded-full border ${
-                  dataConnection === 'live'
-                    ? 'bg-emerald-50 border-emerald-200'
-                    : dataConnection === 'offline'
-                      ? 'bg-amber-50 border-amber-200'
-                      : 'bg-slate-100 border-slate-200'
-                }`}
-              >
-                <Text
-                  className={`text-[10px] font-bold uppercase tracking-wider ${
-                    dataConnection === 'live'
-                      ? 'text-emerald-700'
-                      : dataConnection === 'offline'
-                        ? 'text-amber-700'
-                        : 'text-slate-600'
-                  }`}
-                >
-                  {dataConnection === 'live'
-                    ? 'Live DB'
-                    : dataConnection === 'offline'
-                      ? 'Offline fallback'
-                      : 'Connecting'}
-                </Text>
-              </View>
+          <View className="flex-row items-center gap-2 flex-wrap flex-1 mr-2">
+            <BrandLogo size="sm" testID="coordinator-brand-logo" />
+            <View className="bg-gradient-to-r from-blue-500 to-blue-600 px-2.5 py-0.5 rounded-full">
+              <Text className="text-[10px] font-bold text-white uppercase tracking-wider">
+                Coordinator Portal
+              </Text>
             </View>
-            <Text className="text-3xl font-bold text-slate-900 tracking-tight mt-2">
-              Good morning, {displayCoordinatorName}
-            </Text>
-            <Text className="text-sm text-slate-500 mt-1">
-              Here's what's happening with your family today
-            </Text>
+            {displayFamilyName ? (
+              <View className="bg-slate-100 px-2.5 py-0.5 rounded-full border border-slate-200">
+                <Text className="text-[10px] font-bold text-slate-700">{displayFamilyName}</Text>
+              </View>
+            ) : null}
+            {dataConnection === 'offline' && (
+              <View className="px-2.5 py-0.5 rounded-full border bg-amber-50 border-amber-200 flex-row items-center gap-1">
+                <View className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                <Text className="text-[9px] font-bold uppercase tracking-wider text-amber-700">
+                  Offline Mode
+                </Text>
+              </View>
+            )}
           </View>
-          <View className="flex-row items-center gap-3">
+
+          <View className="flex-row items-center gap-2">
             <TouchableOpacity
               onPress={onOpenNotifications}
-              className="w-11 h-11 bg-gradient-to-br from-blue-50 to-blue-100 rounded-3xl items-center justify-center relative active:scale-95 shadow-sm border border-blue-200"
+              className="w-9 h-9 bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl items-center justify-center relative active:scale-95 shadow-xs border border-blue-200/70"
             >
-              <Bell size={18} color="#007aff" />
+              <Bell size={16} color="#007aff" />
               {unreadCount > 0 && (
-                <View className="absolute -top-1 -right-1 bg-gradient-to-r from-red-500 to-red-600 w-5 h-5 rounded-full items-center justify-center border-2 border-white shadow-sm">
-                  <Text className="text-white text-[10px] font-bold">{unreadCount}</Text>
+                <View className="absolute -top-1 -right-1 bg-gradient-to-r from-red-500 to-red-600 w-4 h-4 rounded-full items-center justify-center border border-white shadow-xs">
+                  <Text className="text-white text-[9px] font-bold">{unreadCount}</Text>
                 </View>
               )}
             </TouchableOpacity>
 
             <TouchableOpacity
               onPress={() => onOpenQuickActions('menu')}
-              className="w-11 h-11 bg-gradient-to-br from-slate-50 to-slate-100 rounded-3xl items-center justify-center active:scale-95 shadow-sm border border-slate-200"
+              className="w-9 h-9 bg-gradient-to-br from-slate-50 to-slate-100 rounded-2xl items-center justify-center active:scale-95 shadow-xs border border-slate-200"
             >
-              <Clock size={18} color="#64748b" />
+              <Clock size={16} color="#64748b" />
             </TouchableOpacity>
 
             {onLogout && (
               <TouchableOpacity
                 onPress={onLogout}
-                className="w-11 h-11 bg-gradient-to-br from-red-50 to-red-100 rounded-3xl items-center justify-center active:scale-95 shadow-sm border border-red-200"
+                className="w-9 h-9 bg-gradient-to-br from-red-50 to-red-100 rounded-2xl items-center justify-center active:scale-95 shadow-xs border border-red-200"
               >
-                <LogOut size={18} color="#ef4444" />
+                <LogOut size={16} color="#ef4444" />
               </TouchableOpacity>
             )}
           </View>
         </View>
+      </View>
+
+      {/* Main Full-Screen ScrollView */}
+      <ScrollView className="flex-1 px-5 pt-4 space-y-5" contentContainerStyle={{ paddingBottom: 120 }}>
+        {/* Hero Greeting */}
+        <View className="space-y-1">
+          <Text className="text-2xl font-black text-slate-900 tracking-tight">
+            Good morning, {displayCoordinatorName}
+          </Text>
+          <Text className="text-xs text-slate-500 font-medium">
+            Here's what's happening with your family today
+          </Text>
+        </View>
 
         {/* Location Translation Pills & Emergency Summary Link */}
-        <View className="flex-row items-center gap-3 flex-wrap">
-          <View className="flex-row items-center gap-2 bg-gradient-to-r from-blue-50 to-blue-100 px-4 py-2 rounded-3xl border border-blue-200 shadow-sm">
-            <MapPin size={12} color="#007aff" />
+        <View className="flex-row items-center gap-2 flex-wrap">
+          <View className="flex-row items-center gap-1.5 bg-gradient-to-r from-blue-50 to-blue-100 px-3 py-1.5 rounded-2xl border border-blue-200 shadow-2xs">
+            <MapPin size={11} color="#007aff" />
             <Text testID="coordinator-location-pill" className="text-[11px] font-semibold text-blue-700">
               You — {context?.currentUser?.location || familyHomeData?.family?.coordinator_location || 'Coordinator'}
             </Text>
           </View>
-          <View className="flex-row items-center gap-2 bg-gradient-to-r from-emerald-50 to-emerald-100 px-4 py-2 rounded-3xl border border-emerald-200 shadow-sm">
-            <MapPin size={12} color="#10b981" />
+          <View className="flex-row items-center gap-1.5 bg-gradient-to-r from-emerald-50 to-emerald-100 px-3 py-1.5 rounded-2xl border border-emerald-200 shadow-2xs">
+            <MapPin size={11} color="#10b981" />
             <Text className="text-[11px] font-semibold text-emerald-700">
               {primaryName} — {primaryLocation}
             </Text>
           </View>
           <TouchableOpacity
             onPress={() => router.push(`/(coordinator)/parent/${primaryPerson?.id || 'dad'}/summary` as any)}
-            className="flex-row items-center gap-1.5 bg-red-50 px-3.5 py-1.5 rounded-3xl border border-red-200 shadow-sm active:scale-95 ml-auto"
+            className="flex-row items-center gap-1.5 bg-red-50 px-3 py-1.5 rounded-2xl border border-red-200 shadow-2xs active:scale-95 ml-auto"
           >
-            <ShieldCheck size={12} color="#ef4444" />
+            <ShieldCheck size={11} color="#ef4444" />
             <Text className="text-[10px] font-bold text-red-700">Emergency Summary</Text>
           </TouchableOpacity>
         </View>
 
         {/* Global Search Bar (TEST SEC-001) */}
-        <View className="mt-3.5 space-y-2">
-          <View className="flex-row items-center bg-white rounded-2xl px-3.5 py-1 border border-slate-200 shadow-xs">
-            <Search size={16} color="#007aff" />
+        <View className="space-y-2">
+          <View className="flex-row items-center bg-white rounded-2xl px-3.5 py-0.5 border border-slate-200 shadow-xs">
+            <Search size={15} color="#007aff" />
             <TextInput
               testID="coordinator-search-input"
               accessibilityLabel={`Search ${primaryName} care information, vitals and records`}
@@ -543,12 +618,12 @@ export const HealthDashboard: React.FC<HealthDashboardProps> = ({
               onSubmitEditing={() => handleExecuteSearch(searchQuery)}
               placeholder="Search family care information"
               placeholderTextColor="#94a3b8"
-              className="flex-1 px-3 py-2.5 text-xs text-slate-800 font-semibold"
+              className="flex-1 px-3 py-2 text-xs text-slate-800 font-semibold"
               returnKeyType="search"
             />
             {searchQuery ? (
-              <TouchableOpacity testID="coordinator-search-clear" onPress={handleClearSearch} className="p-1.5 mr-1">
-                <X size={15} color="#94a3b8" />
+              <TouchableOpacity testID="coordinator-search-clear" onPress={handleClearSearch} className="p-1 mr-1">
+                <X size={14} color="#94a3b8" />
               </TouchableOpacity>
             ) : null}
             <TouchableOpacity
@@ -693,9 +768,7 @@ export const HealthDashboard: React.FC<HealthDashboardProps> = ({
             </View>
           )}
         </View>
-      </View>
 
-      <ScrollView className="flex-1 px-6 pt-6 space-y-6">
         {/* Today's Attention Alert Section */}
         <View className="space-y-3">
           <Text className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">
@@ -706,13 +779,13 @@ export const HealthDashboard: React.FC<HealthDashboardProps> = ({
             /* Parent Feeling Unwell Urgent Card */
             <View className="bg-white rounded-3xl p-5 shadow-sm shadow-neutral-100 space-y-3.5 border-l-4 border-[#ff3b30]">
               <View className="flex-row justify-between items-start">
-                <View className="flex-row items-center gap-2">
-                  <AlertTriangle size={15} color="#ff3b30" />
-                  <Text className="text-xs font-bold text-neutral-800">
+                <View className="flex-row items-center gap-2 flex-1 min-w-0 mr-2">
+                  <AlertTriangle size={15} color="#ff3b30" className="shrink-0" />
+                  <Text className="text-xs font-bold text-neutral-800 flex-1 min-w-0" numberOfLines={1}>
                     {primaryName} reported feeling unwell
                   </Text>
                 </View>
-                <View className="bg-red-50 px-2.5 py-0.5 rounded-full border border-red-200">
+                <View className="bg-red-50 px-2.5 py-0.5 rounded-full border border-red-200 shrink-0">
                   <Text accessibilityLabel="Severity: Urgent Care Action" className="text-[8px] font-bold text-[#ff3b30] uppercase">
                     [Urgent Care Action]
                   </Text>
@@ -759,20 +832,20 @@ export const HealthDashboard: React.FC<HealthDashboardProps> = ({
             /* COORD-003: Prominent & Actionable Guardian Moment Card citing underlying data */
             <View testID="guardian-moment-card" className="bg-white rounded-3xl p-5 shadow-md shadow-amber-100/50 space-y-4 border-l-4 border-amber-500 border border-amber-200">
               <View className="flex-row justify-between items-start">
-                <View className="flex-row items-center gap-2">
-                  <View className="w-8 h-8 rounded-xl bg-amber-100 items-center justify-center">
+                <View className="flex-row items-center gap-2 flex-1 min-w-0 mr-2">
+                  <View className="w-8 h-8 rounded-xl bg-amber-100 items-center justify-center shrink-0">
                     <Sparkles size={18} color="#d97706" />
                   </View>
-                  <View>
-                    <Text className="text-sm font-black text-slate-900">
+                  <View className="flex-1 min-w-0">
+                    <Text className="text-sm font-black text-slate-900" numberOfLines={1}>
                       Guardian Moment • {primaryName}
                     </Text>
-                    <Text className="text-[10px] font-bold text-amber-700">
+                    <Text className="text-[10px] font-bold text-amber-700" numberOfLines={1}>
                       ⚡ Actionable Care Observation
                     </Text>
                   </View>
                 </View>
-                <View className="bg-amber-100 px-3 py-1 rounded-full border border-amber-300">
+                <View className="bg-amber-100 px-3 py-1 rounded-full border border-amber-300 shrink-0">
                   <Text className="text-[9px] font-black text-amber-900 uppercase">
                     AI Observation • 95% Confidence
                   </Text>
@@ -799,22 +872,22 @@ export const HealthDashboard: React.FC<HealthDashboardProps> = ({
                 </Text>
                 <View className="space-y-1.5">
                   <View className="bg-slate-50 p-2.5 rounded-xl flex-row items-center justify-between border border-slate-200">
-                    <Text className="text-[11px] font-bold text-slate-800">
+                    <Text className="text-[11px] font-bold text-slate-800 flex-1 min-w-0 mr-2" numberOfLines={1}>
                       ⌚ Wearable Telemetry (Google Fit / Health Connect API)
                     </Text>
-                    <Text className="text-[11px] font-black text-amber-600">-34.2% drop</Text>
+                    <Text className="text-[11px] font-black text-amber-600 shrink-0">-34.2% drop</Text>
                   </View>
                   <View className="bg-slate-50 p-2.5 rounded-xl flex-row items-center justify-between border border-slate-200">
-                    <Text className="text-[11px] font-bold text-slate-800">
+                    <Text className="text-[11px] font-bold text-slate-800 flex-1 min-w-0 mr-2" numberOfLines={1}>
                       📋 Daily Symptom Check-in
                     </Text>
-                    <Text className="text-[11px] font-semibold text-slate-600">Fatigue reported</Text>
+                    <Text className="text-[11px] font-semibold text-slate-600 shrink-0">Fatigue reported</Text>
                   </View>
                   <View className="bg-slate-50 p-2.5 rounded-xl flex-row items-center justify-between border border-slate-200">
-                    <Text className="text-[11px] font-bold text-slate-800">
+                    <Text className="text-[11px] font-bold text-slate-800 flex-1 min-w-0 mr-2" numberOfLines={1}>
                       📊 30-Day Activity Baseline
                     </Text>
-                    <Text className="text-[11px] font-black text-slate-800">5,200 → 3,420 steps/day</Text>
+                    <Text className="text-[11px] font-black text-slate-800 shrink-0">5,200 → 3,420 steps/day</Text>
                   </View>
                 </View>
               </View>
@@ -874,11 +947,11 @@ export const HealthDashboard: React.FC<HealthDashboardProps> = ({
             /* Traditional BP Alert Card */
             <View className="bg-white rounded-3xl p-5 shadow-sm shadow-neutral-100 space-y-3.5 border-l-4 border-[#ff3b30]">
               <View className="flex-row justify-between items-start">
-                <View className="flex-row items-center gap-2">
-                  <AlertTriangle size={15} color="#ff3b30" />
-                  <Text className="text-xs font-bold text-neutral-800">Vitals threshold alert</Text>
+                <View className="flex-row items-center gap-2 flex-1 min-w-0 mr-2">
+                  <AlertTriangle size={15} color="#ff3b30" className="shrink-0" />
+                  <Text className="text-xs font-bold text-neutral-800 flex-1 min-w-0" numberOfLines={1}>Vitals threshold alert</Text>
                 </View>
-                <View className="bg-red-50 px-2.5 py-0.5 rounded-full border border-red-200">
+                <View className="bg-red-50 px-2.5 py-0.5 rounded-full border border-red-200 shrink-0">
                   <Text accessibilityLabel="Severity: Urgent Care Action" className="text-[8px] font-bold text-[#ff3b30] uppercase">
                     [Urgent Care Action]
                   </Text>
@@ -907,20 +980,20 @@ export const HealthDashboard: React.FC<HealthDashboardProps> = ({
             /* COORD-002: Parent has no recent events -> Appropriate reassurance & data-availability state, not a false alert */
             <View testID="reassurance-card" className="bg-white rounded-3xl p-5 shadow-sm shadow-neutral-100 space-y-4 border-l-4 border-[#34c759] border border-emerald-100">
               <View className="flex-row justify-between items-start">
-                <View className="flex-row items-center gap-2">
-                  <View className="w-8 h-8 rounded-xl bg-emerald-100 items-center justify-center">
+                <View className="flex-row items-center gap-2 flex-1 min-w-0 mr-2">
+                  <View className="w-8 h-8 rounded-xl bg-emerald-100 items-center justify-center shrink-0">
                     <CheckCircle2 size={18} color="#10b981" />
                   </View>
-                  <View>
-                    <Text testID="reassurance-card-title" className="text-xs font-black text-[#10b981]">
+                  <View className="flex-1 min-w-0">
+                    <Text testID="reassurance-card-title" className="text-xs font-black text-[#10b981]" numberOfLines={1}>
                       {activeReassurance?.card_title || 'All Statuses Optimal'}
                     </Text>
-                    <Text className="text-[10px] font-semibold text-slate-500">
-                      Normal Routine Active
+                    <Text className="text-[10px] font-semibold text-slate-500" numberOfLines={1}>
+                      {isWearableConnected ? 'Normal Routine Active' : 'Care Circle Ready • No Sensors Paired'}
                     </Text>
                   </View>
                 </View>
-                <View testID="reassurance-no-false-alerts" className="bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
+                <View testID="reassurance-no-false-alerts" className="bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200 shrink-0">
                   <Text className="text-[9px] font-black text-emerald-800 uppercase">
                     Zero False Alerts
                   </Text>
@@ -929,7 +1002,9 @@ export const HealthDashboard: React.FC<HealthDashboardProps> = ({
 
               <View className="space-y-1 bg-emerald-50/50 p-3.5 rounded-2xl border border-emerald-100">
                 <Text className="text-sm font-black text-slate-900 tracking-tight">
-                  {activeReassurance?.reassurance_state || `Routine is stable for ${primaryName}`}
+                  {isWearableConnected
+                    ? (activeReassurance?.reassurance_state || `Routine is stable for ${primaryName}`)
+                    : `Routine is stable for ${primaryName} • No Sensors Paired`}
                 </Text>
                 <Text className="text-xs text-slate-600 leading-relaxed font-medium">
                   {activeReassurance?.message || 'Routine is stable with no urgent notifications or missed medications in the past 24 hours.'}
@@ -937,30 +1012,49 @@ export const HealthDashboard: React.FC<HealthDashboardProps> = ({
               </View>
 
               {/* Data Availability State Verification (COORD-002) */}
-              <View testID="data-availability-indicator" className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-2">
+              <View testID="data-availability-indicator" className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-2.5">
                 <View className="flex-row items-center justify-between">
-                  <View className="flex-row items-center gap-1.5">
-                    <ShieldCheck size={16} color="#10b981" />
-                    <Text className="text-xs font-bold text-slate-800">
-                      {activeReassurance?.data_availability || 'Data Available • Routine Monitoring Active'}
+                  <View className="flex-row items-center gap-1.5 flex-1 min-w-0 mr-2">
+                    <ShieldCheck size={16} color="#10b981" className="shrink-0" />
+                    <Text className="text-xs font-bold text-slate-800 flex-1" numberOfLines={2}>
+                      {isWearableConnected
+                        ? (activeReassurance?.data_availability || 'Data Available • Routine Monitoring Active')
+                        : 'Data Available • Routine Monitoring Active (No Wearables)'}
                     </Text>
                   </View>
-                  <View className="flex-row items-center gap-1">
-                    <View className="w-2 h-2 rounded-full bg-emerald-500" />
-                    <Text className="text-[9px] font-bold text-emerald-700">ACTIVE</Text>
+                  <View className="flex-row items-center gap-1 shrink-0 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200">
+                    <View className={`w-2 h-2 rounded-full ${isWearableConnected ? 'bg-emerald-500' : 'bg-blue-500'}`} />
+                    <Text className={`text-[9px] font-bold ${isWearableConnected ? 'text-emerald-700' : 'text-blue-700'}`}>
+                      {isWearableConnected ? 'ACTIVE' : 'READY'}
+                    </Text>
                   </View>
                 </View>
                 <Text className="text-[11px] text-slate-500 leading-normal">
-                  Connected sensors and check-in telemetry are online. Absence of notifications represents reassuring normal status, not a data lapse.
+                  {isWearableConnected
+                    ? 'Connected sensors and check-in telemetry are online. Absence of notifications represents reassuring normal status, not a data lapse.'
+                    : 'Absence of notifications represents reassuring normal status, not a data lapse. Care circle is active with 0 alerts; no smart wearables are paired yet.'}
                 </Text>
+                {!isWearableConnected && (
+                  <View className="flex-row items-center justify-between pt-2 border-t border-slate-200/70 flex-wrap gap-1">
+                    <Text className="text-[10px] font-semibold text-slate-500">
+                      Connect Apple Watch, Fitbit, or Garmin:
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() => router.push('/(coordinator)/devices' as any)}
+                      className="bg-blue-50 px-2.5 py-1 rounded-xl border border-blue-200 active:bg-blue-100 shrink-0"
+                    >
+                      <Text className="text-[10px] font-bold text-blue-700">+ Add Wearable</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
               </View>
 
-              <View className="pt-2 border-t border-neutral-100 flex-row items-center justify-between">
-                <Text className="text-[10px] font-semibold text-neutral-500">
-                  Check-ins: Stable • Alerts: 0
+              <View className="pt-2 border-t border-neutral-100 flex-row items-center justify-between flex-wrap gap-1">
+                <Text className="text-[10px] font-semibold text-neutral-500 flex-1 min-w-[140px]">
+                  Check-ins: {recentCheckIns && recentCheckIns.length > 0 ? 'Active' : 'Awaiting first'} • Alerts: 0
                 </Text>
-                <Text className="text-[10px] font-bold text-neutral-400">
-                  Telemetry Synced: Just now
+                <Text className="text-[10px] font-bold text-neutral-400 shrink-0">
+                  Telemetry Synced: {isWearableConnected ? 'Just now' : 'Awaiting sensor pairing'}
                 </Text>
               </View>
             </View>
@@ -980,25 +1074,65 @@ export const HealthDashboard: React.FC<HealthDashboardProps> = ({
                 <View className="w-8 h-8 rounded-full bg-[#eff6ff] items-center justify-center shrink-0">
                   <Pill size={14} color="#007aff" />
                 </View>
-                <View className="flex-1 space-y-0.5">
-                  <Text className="text-xs font-bold text-neutral-800">Medication</Text>
-                  <Text testID="coordinator-medication-name" className="text-[10px] text-neutral-400 font-semibold">
-                    Atorvastatin 20mg • Evening dosage
-                  </Text>
-                </View>
-                <View
-                  testID="coordinator-medication-status"
-                  className={`px-2.5 py-0.5 rounded-full ${isAtorvastatinTaken ? 'bg-emerald-50' : 'bg-orange-50'}`}
-                >
-                  <Text
-                    className={`text-[8px] font-bold uppercase ${isAtorvastatinTaken ? 'text-[#34c759]' : 'text-[#ff9500]'}`}
-                  >
-                    {isAtorvastatinTaken ? 'Taken' : 'Pending'}
-                  </Text>
-                </View>
+                {isDemoDad ? (
+                  <>
+                    <View className="flex-1 min-w-0 mr-2 space-y-0.5">
+                      <Text className="text-xs font-bold text-neutral-800">Medication</Text>
+                      <Text testID="coordinator-medication-name" className="text-[10px] text-neutral-400 font-semibold" numberOfLines={1}>
+                        Atorvastatin 20mg • Evening dosage
+                      </Text>
+                    </View>
+                    <View
+                      testID="coordinator-medication-status"
+                      className={`px-2.5 py-0.5 rounded-full shrink-0 ${isAtorvastatinTaken ? 'bg-emerald-50' : 'bg-orange-50'}`}
+                    >
+                      <Text
+                        className={`text-[8px] font-bold uppercase ${isAtorvastatinTaken ? 'text-[#34c759]' : 'text-[#ff9500]'}`}
+                      >
+                        {isAtorvastatinTaken ? 'Taken' : 'Pending'}
+                      </Text>
+                    </View>
+                  </>
+                ) : primaryPersonMeds.length > 0 ? (
+                  <>
+                    <View className="flex-1 min-w-0 mr-2 space-y-0.5">
+                      <Text className="text-xs font-bold text-neutral-800">Medication</Text>
+                      <Text testID="coordinator-medication-name" className="text-[10px] text-neutral-400 font-semibold" numberOfLines={1}>
+                        {primaryPersonMeds[0].name} {primaryPersonMeds[0].dose} • {primaryPersonMeds[0].frequency}
+                      </Text>
+                    </View>
+                    <View
+                      testID="coordinator-medication-status"
+                      className={`px-2.5 py-0.5 rounded-full shrink-0 ${primaryPersonMeds[0].status === 'taken' ? 'bg-emerald-50' : 'bg-orange-50'}`}
+                    >
+                      <Text
+                        className={`text-[8px] font-bold uppercase ${primaryPersonMeds[0].status === 'taken' ? 'text-[#34c759]' : 'text-[#ff9500]'}`}
+                      >
+                        {primaryPersonMeds[0].status === 'taken' ? 'Taken' : 'Pending'}
+                      </Text>
+                    </View>
+                  </>
+                ) : (
+                  <>
+                    <View className="flex-1 min-w-0 mr-2 space-y-0.5">
+                      <Text className="text-xs font-bold text-neutral-800">Medication Registry</Text>
+                      <Text testID="coordinator-medication-name" className="text-[10px] text-neutral-400 font-semibold" numberOfLines={1}>
+                        No active prescriptions on file for {primaryName}
+                      </Text>
+                    </View>
+                    <View
+                      testID="coordinator-medication-status"
+                      className="px-2.5 py-0.5 rounded-full bg-slate-100 shrink-0"
+                    >
+                      <Text className="text-[8px] font-bold uppercase text-slate-500">
+                        Baseline
+                      </Text>
+                    </View>
+                  </>
+                )}
               </View>
 
-              {!isAtorvastatinTaken && (
+              {isDemoDad && !isAtorvastatinTaken && (
                 <TouchableOpacity
                   testID="coordinator-medication-remind"
                   onPress={onRemindDad}
@@ -1011,6 +1145,19 @@ export const HealthDashboard: React.FC<HealthDashboardProps> = ({
                   </Text>
                 </TouchableOpacity>
               )}
+              {!isDemoDad && primaryPersonMeds.length > 0 && primaryPersonMeds[0].status !== 'taken' && (
+                <TouchableOpacity
+                  testID="coordinator-medication-remind"
+                  onPress={onRemindDad}
+                  activeOpacity={0.8}
+                  className="bg-[#007aff] py-2.5 px-4 rounded-xl flex-row items-center justify-center gap-2 active:scale-95 shadow-sm"
+                >
+                  <Bell size={13} color="#ffffff" />
+                  <Text className="text-white text-xs font-bold">
+                    Remind {primaryName} to take {primaryPersonMeds[0].name}
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
 
             {/* Appointment task */}
@@ -1018,19 +1165,50 @@ export const HealthDashboard: React.FC<HealthDashboardProps> = ({
               <View className="w-8 h-8 rounded-full bg-rose-50 items-center justify-center shrink-0">
                 <Calendar size={14} color="#ff3b30" />
               </View>
-              <View className="flex-1 space-y-0.5">
+              <View className="flex-1 min-w-0 mr-2 space-y-0.5">
                 <Text className="text-xs font-bold text-neutral-800">Appointment</Text>
-                <Text className="text-[10px] text-neutral-400 font-semibold">
-                  Cardiology Video Visit • Tomorrow
-                </Text>
-                {/* COORD-005: local parent time + coordinator timezone context */}
-                <Text
-                  testID="coordinator-appointment-time"
-                  accessibilityLabel={`${appointmentTz.parentDisplay} IST parent local time; ${appointmentTz.coordinatorDisplay}`}
-                  className="text-[10px] text-neutral-500 font-bold"
-                >
-                  Tomorrow {appointmentTz.dualDisplay}
-                </Text>
+                {isDemoDad ? (
+                  <>
+                    <Text className="text-[10px] text-neutral-400 font-semibold" numberOfLines={1}>
+                      Cardiology Video Visit • Tomorrow
+                    </Text>
+                    {/* COORD-005: local parent time + coordinator timezone context */}
+                    <Text
+                      testID="coordinator-appointment-time"
+                      accessibilityLabel={`${appointmentTz.parentDisplay} IST parent local time; ${appointmentTz.coordinatorDisplay}`}
+                      className="text-[10px] text-neutral-500 font-bold"
+                      numberOfLines={1}
+                    >
+                      Tomorrow {appointmentTz.dualDisplay}
+                    </Text>
+                  </>
+                ) : primaryPersonAppt ? (
+                  <>
+                    <Text className="text-[10px] text-neutral-400 font-semibold" numberOfLines={1}>
+                      {primaryPersonAppt.specialty} Video Visit • {primaryPersonAppt.doctorName}
+                    </Text>
+                    <Text
+                      testID="coordinator-appointment-time"
+                      className="text-[10px] text-neutral-500 font-bold"
+                      numberOfLines={1}
+                    >
+                      {primaryPersonAppt.date} at {primaryPersonAppt.time}
+                    </Text>
+                  </>
+                ) : (
+                  <>
+                    <Text className="text-[10px] text-neutral-400 font-semibold" numberOfLines={1}>
+                      General Consultation • Routine Checkup
+                    </Text>
+                    <Text
+                      testID="coordinator-appointment-time"
+                      className="text-[10px] text-neutral-500 font-bold"
+                      numberOfLines={1}
+                    >
+                      No scheduled doctor visits for {primaryName}
+                    </Text>
+                  </>
+                )}
                 <TouchableOpacity
                   testID="coordinator-appointment-prepare"
                   onPress={handleOpenAppointmentPrep}
@@ -1042,8 +1220,10 @@ export const HealthDashboard: React.FC<HealthDashboardProps> = ({
                   </Text>
                 </TouchableOpacity>
               </View>
-              <View className="bg-blue-50 px-2 py-0.5 rounded-full">
-                <Text className="text-[8px] font-bold text-[#007aff] uppercase">Scheduled</Text>
+              <View className="bg-blue-50 px-2 py-0.5 rounded-full shrink-0">
+                <Text className="text-[8px] font-bold text-[#007aff] uppercase">
+                  {isDemoDad || primaryPersonAppt ? 'Scheduled' : 'Routine'}
+                </Text>
               </View>
             </View>
 
@@ -1052,13 +1232,13 @@ export const HealthDashboard: React.FC<HealthDashboardProps> = ({
               <View className="w-8 h-8 rounded-full bg-emerald-50 items-center justify-center shrink-0">
                 <Activity size={14} color="#34c759" />
               </View>
-              <View className="flex-1 space-y-0.5">
+              <View className="flex-1 min-w-0 mr-2 space-y-0.5">
                 <Text className="text-xs font-bold text-neutral-800">Care task</Text>
-                <Text className="text-[10px] text-neutral-400 font-semibold">
+                <Text className="text-[10px] text-neutral-400 font-semibold" numberOfLines={1}>
                   Verify afternoon hydration checklist
                 </Text>
               </View>
-              <View className="bg-emerald-50 px-2 py-0.5 rounded-full">
+              <View className="bg-emerald-50 px-2 py-0.5 rounded-full shrink-0">
                 <Text className="text-[8px] font-bold text-[#34c759] uppercase">Active</Text>
               </View>
             </View>
@@ -1069,53 +1249,59 @@ export const HealthDashboard: React.FC<HealthDashboardProps> = ({
         {/* DAD'S WEARABLE ACTIVITY & HEALTH TELEMETRY CARD - GOOGLE FIT REAL-TIME     */}
         {/* ========================================================================= */}
         <View className="space-y-3">
-          <View className="flex-row items-center justify-between px-1">
-            <View className="flex-row items-center gap-1.5">
-              <Watch size={14} color="#007aff" />
-              <Text className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+          <View className="flex-row items-center justify-between px-1 flex-wrap gap-y-1.5">
+            <View className="flex-row items-center gap-1.5 flex-1 min-w-[140px] mr-2">
+              <Watch size={14} color="#007aff" className="shrink-0" />
+              <Text className="text-xs font-bold text-slate-500 uppercase tracking-wider" numberOfLines={1}>
                 {primaryName}'s Wearable Telemetry
               </Text>
             </View>
-            <View testID="wearable-status-badge" className="flex-row items-center gap-1.5">
-              {wearableSummary?.is_outage || wearableSummary?.wearable_status === 'unavailable' ? (
-                <View className="px-2.5 py-0.5 rounded-full border bg-amber-50 border-amber-300 flex-row items-center gap-1.5 shadow-xs">
+            <View testID="wearable-status-badge" className="flex-row items-center gap-1.5 shrink-0 flex-wrap">
+              {!isWearableConnected ? (
+                <View className="px-2.5 py-0.5 rounded-full border bg-slate-100 border-slate-300 flex-row items-center gap-1.5 shadow-xs shrink-0">
+                  <View className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                  <Text className="text-[9px] font-bold text-slate-600">NO SENSORS PAIRED</Text>
+                </View>
+              ) : wearableSummary?.is_outage || wearableSummary?.wearable_status === 'unavailable' ? (
+                <View className="px-2.5 py-0.5 rounded-full border bg-amber-50 border-amber-300 flex-row items-center gap-1.5 shadow-xs shrink-0">
                   <AlertTriangle size={10} color="#d97706" />
                   <Text className="text-[9px] font-bold text-amber-800">TELEMETRY UNAVAILABLE</Text>
                 </View>
               ) : wearableSummary?.is_stale || (typeof wearableSummary?.hours_since_sync === 'number' && wearableSummary.hours_since_sync >= 12) ? (
-                <View className="px-2.5 py-0.5 rounded-full border bg-amber-50 border-amber-300 flex-row items-center gap-1.5 shadow-xs">
+                <View className="px-2.5 py-0.5 rounded-full border bg-amber-50 border-amber-300 flex-row items-center gap-1.5 shadow-xs shrink-0">
                   <AlertTriangle size={10} color="#d97706" />
                   <Text className="text-[9px] font-bold text-amber-800">● SYNC DELAYED (OVER 12 HOURS)</Text>
                 </View>
               ) : (
-                <View className="px-2.5 py-0.5 rounded-full border bg-emerald-50 border-emerald-300 flex-row items-center gap-1.5 shadow-xs">
+                <View className="px-2.5 py-0.5 rounded-full border bg-emerald-50 border-emerald-300 flex-row items-center gap-1.5 shadow-xs shrink-0">
                   <View className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                   <Text className="text-[9px] font-bold text-emerald-700">● ALL SYSTEMS ACTIVE</Text>
                 </View>
               )}
-              <Text className="text-[9px] text-slate-400 font-semibold">
-                Local Projections (&lt; 200ms)
-              </Text>
             </View>
           </View>
 
           {/* The Telemetry Card with Metrics and Provenance */}
           <View testID="wearable-telemetry-card" className="bg-white rounded-3xl p-5 border border-slate-200 shadow-lg shadow-slate-100/50 space-y-4">
             <View className="flex-row items-center justify-between pb-4 border-b border-slate-100">
-              <View className="flex-row items-center gap-2">
-                <View className="w-8 h-8 rounded-xl bg-indigo-50 items-center justify-center">
+              <View className="flex-row items-center gap-2 flex-1 min-w-0 mr-2">
+                <View className="w-8 h-8 rounded-xl bg-indigo-50 items-center justify-center shrink-0">
                   <Activity size={16} color="#007aff" />
                 </View>
-                <View>
-                  <Text className="text-sm font-black text-slate-900">
-                    {wearableSummary?.is_outage || wearableSummary?.wearable_status === 'unavailable'
+                <View className="flex-1 min-w-0">
+                  <Text className="text-sm font-black text-slate-900" numberOfLines={1}>
+                    {!isWearableConnected
+                      ? 'Wearable Telemetry'
+                      : wearableSummary?.is_outage || wearableSummary?.wearable_status === 'unavailable'
                       ? 'Telemetry Temporarily Unavailable'
                       : "Today's Activity & Vitals"}
                   </Text>
-                  <Text className="text-[10px] text-slate-400 font-medium">
+                  <Text className="text-[10px] text-slate-400 font-medium" numberOfLines={1}>
                     Provenance:{' '}
                     <Text className="font-bold text-slate-700">
-                      {wearableSummary?.source === 'fitbit'
+                      {!isWearableConnected
+                        ? 'No device paired'
+                        : wearableSummary?.source === 'fitbit'
                         ? 'Fitbit Cloud API'
                         : wearableSummary?.source === 'garmin'
                         ? 'Garmin Connect API'
@@ -1124,22 +1310,29 @@ export const HealthDashboard: React.FC<HealthDashboardProps> = ({
                   </Text>
                 </View>
               </View>
-              {wearableSummary?.is_outage || wearableSummary?.wearable_status === 'unavailable' ? (
-                <View className="bg-amber-50 border border-amber-300 rounded-full px-2.5 py-0.5 flex-row items-center gap-1 shadow-xs">
+              {!isWearableConnected ? (
+                <View className="bg-slate-100 border border-slate-200 rounded-full px-2.5 py-0.5 flex-row items-center gap-1 shadow-xs shrink-0">
+                  <Watch size={11} color="#64748b" />
+                  <Text className="text-[10px] font-bold text-slate-500 uppercase">
+                    NOT CONNECTED
+                  </Text>
+                </View>
+              ) : wearableSummary?.is_outage || wearableSummary?.wearable_status === 'unavailable' ? (
+                <View className="bg-amber-50 border border-amber-300 rounded-full px-2.5 py-0.5 flex-row items-center gap-1 shadow-xs shrink-0">
                   <AlertTriangle size={11} color="#d97706" />
                   <Text className="text-[10px] font-bold text-amber-800 uppercase">
                     CACHED TELEMETRY
                   </Text>
                 </View>
               ) : wearableSummary?.is_stale || (typeof wearableSummary?.hours_since_sync === 'number' && wearableSummary.hours_since_sync >= 12) ? (
-                <View className="bg-amber-50 border border-amber-300 rounded-full px-2.5 py-0.5 flex-row items-center gap-1 shadow-xs">
+                <View className="bg-amber-50 border border-amber-300 rounded-full px-2.5 py-0.5 flex-row items-center gap-1 shadow-xs shrink-0">
                   <AlertTriangle size={11} color="#d97706" />
                   <Text className="text-[10px] font-bold text-amber-800 uppercase">
                     SYNC DELAYED (OVER 12 HOURS)
                   </Text>
                 </View>
               ) : (
-                <View className="bg-emerald-50 border border-emerald-300 rounded-full px-2.5 py-0.5 flex-row items-center gap-1 shadow-xs">
+                <View className="bg-emerald-50 border border-emerald-300 rounded-full px-2.5 py-0.5 flex-row items-center gap-1 shadow-xs shrink-0">
                   <ShieldCheck size={11} color="#10b981" />
                   <Text className="text-[10px] font-bold text-emerald-700 uppercase">
                     {wearableSummary?.source === 'fitbit'
@@ -1155,7 +1348,8 @@ export const HealthDashboard: React.FC<HealthDashboardProps> = ({
             {/* WEAR-007 Amber Notice for Data Stale (Over 12 hours) */}
             {Boolean(
               (wearableSummary?.is_stale || (typeof wearableSummary?.hours_since_sync === 'number' && wearableSummary.hours_since_sync >= 12)) &&
-              !wearableSummary?.is_outage
+              !wearableSummary?.is_outage &&
+              isWearableConnected
             ) && (
               <View testID="wearable-stale-notice" className="bg-amber-50/90 border border-amber-200 rounded-2xl p-3.5 flex-row items-start gap-2.5">
                 <AlertTriangle size={16} color="#d97706" className="mt-0.5" />
@@ -1167,6 +1361,26 @@ export const HealthDashboard: React.FC<HealthDashboardProps> = ({
                     Hardware connectivity check recommended. Displaying last synchronized readings. Calm notice: This is a data availability delay, NOT a physiological emergency or cardiac alert.
                   </Text>
                 </View>
+              </View>
+            )}
+
+            {/* Empty State Callout when no wearable is paired */}
+            {!isWearableConnected && (
+              <View className="bg-blue-50/80 border border-blue-200 rounded-2xl p-3.5 flex-row items-center justify-between gap-3">
+                <View className="flex-1 space-y-0.5">
+                  <Text className="text-xs font-bold text-blue-900">
+                    No Smart Wearables Connected
+                  </Text>
+                  <Text className="text-[11px] text-blue-700 font-medium leading-relaxed">
+                    Pair Apple Watch, Garmin, Fitbit, or Google Fit to stream real-time heart rate, steps, and sleep.
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  onPress={() => router.push('/(coordinator)/devices' as any)}
+                  className="bg-blue-600 px-3 py-2 rounded-xl active:bg-blue-700 shadow-xs"
+                >
+                  <Text className="text-white text-[11px] font-bold">Connect</Text>
+                </TouchableOpacity>
               </View>
             )}
 
@@ -1196,13 +1410,15 @@ export const HealthDashboard: React.FC<HealthDashboardProps> = ({
                   <Text className="text-[10px] font-bold text-orange-800 uppercase tracking-wide">Steps</Text>
                 </View>
                 <Text className="text-2xl font-black text-slate-900 tracking-tight">
-                  {typeof wearableSummary?.steps === 'number'
+                  {isWearableConnected && typeof wearableSummary?.steps === 'number'
                     ? wearableSummary.steps.toLocaleString()
-                    : '0'}
+                    : '--'}
                 </Text>
                 <View className="flex-row items-center gap-1 mt-1">
-                  <View className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  <Text className="text-[10px] font-bold text-emerald-600">Live Moving</Text>
+                  <View className={`w-1.5 h-1.5 rounded-full ${isWearableConnected ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
+                  <Text className={`text-[10px] font-bold ${isWearableConnected ? 'text-emerald-600' : 'text-slate-400'}`}>
+                    {isWearableConnected ? 'Live Moving' : 'No sensor'}
+                  </Text>
                 </View>
               </View>
 
@@ -1215,11 +1431,13 @@ export const HealthDashboard: React.FC<HealthDashboardProps> = ({
                   <Text className="text-[10px] font-bold text-rose-800 uppercase tracking-wide">Resting HR</Text>
                 </View>
                 <Text className="text-2xl font-black text-slate-900 tracking-tight">
-                  {wearableSummary?.heart_rate ? `${wearableSummary.heart_rate} bpm` : '-- bpm'}
+                  {isWearableConnected && wearableSummary?.heart_rate ? `${wearableSummary.heart_rate} bpm` : '-- bpm'}
                 </Text>
                 <View className="flex-row items-center gap-1 mt-1">
-                  <View className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  <Text className="text-[10px] font-bold text-emerald-600">Real-time</Text>
+                  <View className={`w-1.5 h-1.5 rounded-full ${isWearableConnected ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
+                  <Text className={`text-[10px] font-bold ${isWearableConnected ? 'text-emerald-600' : 'text-slate-400'}`}>
+                    {isWearableConnected ? 'Real-time' : 'No sensor'}
+                  </Text>
                 </View>
               </View>
 
@@ -1232,12 +1450,12 @@ export const HealthDashboard: React.FC<HealthDashboardProps> = ({
                   <Text className="text-[10px] font-bold text-indigo-800 uppercase tracking-wide">Rest Sleep</Text>
                 </View>
                 <Text className="text-2xl font-black text-slate-900 tracking-tight">
-                  {wearableSummary?.sleep_minutes
+                  {isWearableConnected && wearableSummary?.sleep_minutes
                     ? `${Math.floor(wearableSummary.sleep_minutes / 60)}h ${wearableSummary.sleep_minutes % 60}m`
                     : '--'}
                 </Text>
-                <Text className="text-[10px] font-bold text-indigo-600 mt-1">
-                  {wearableSummary?.sleep_minutes ? `${wearableSummary.sleep_minutes} mins` : '-- mins'}
+                <Text className={`text-[10px] font-bold mt-1 ${isWearableConnected ? 'text-indigo-600' : 'text-slate-400'}`}>
+                  {isWearableConnected && wearableSummary?.sleep_minutes ? `${wearableSummary.sleep_minutes} mins` : 'No sensor'}
                 </Text>
               </View>
             </View>
@@ -1300,124 +1518,124 @@ export const HealthDashboard: React.FC<HealthDashboardProps> = ({
           </View>
         </TouchableOpacity>
 
-        {/* SECTION 14: FHIR Clinical Record Integration Hub */}
+        {/* SECTION 14: Clinical Records & Health Hub */}
         <View className="bg-white rounded-3xl p-5 border border-slate-200 shadow-sm space-y-3.5">
           <View className="flex-row items-center justify-between pb-3 border-b border-slate-100">
-            <View className="flex-row items-center gap-2.5">
-              <View className="w-8 h-8 rounded-xl bg-blue-50 items-center justify-center">
+            <View className="flex-row items-center gap-2.5 flex-1 min-w-0 mr-2">
+              <View className="w-8 h-8 rounded-xl bg-blue-50 items-center justify-center shrink-0">
                 <ShieldCheck size={18} color="#007aff" />
               </View>
-              <View>
-                <Text className="text-sm font-black text-slate-900">
-                  FHIR Clinical Integration Hub
+              <View className="flex-1 min-w-0">
+                <Text className="text-sm font-black text-slate-900" numberOfLines={1}>
+                  Clinical Records & Health Hub
                 </Text>
-                <Text className="text-[10px] text-slate-400 font-semibold">
-                  FHIR Patient: <Text className="font-mono font-bold text-blue-800">Patient/{primaryPerson?.backendSubjectId || `${primaryName.toLowerCase()}-1`}</Text>
+                <Text className="text-[10px] text-slate-500 font-medium" numberOfLines={1}>
+                  Patient: <Text className="font-bold text-slate-700">{primaryName}</Text> • <Text className="font-semibold text-blue-700">Clinical EHR Linked</Text>
                 </Text>
               </View>
             </View>
-            <View className="bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5 flex-row items-center gap-1">
+            <View className="bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5 flex-row items-center gap-1 shrink-0">
               <CheckCircle2 size={10} color="#059669" />
-              <Text className="text-[9px] font-black text-emerald-700">FHIR Synced</Text>
+              <Text className="text-[9px] font-black text-emerald-700">Verified EHR</Text>
             </View>
           </View>
 
-          {/* 5 FHIR Module Quick Nav Tiles */}
+          {/* 5 Clinical Module Quick Nav Tiles */}
           <View className="space-y-2">
-            {/* 1. Profile & Identity (FHIR-001) */}
+            {/* 1. Profile & Identity */}
             <TouchableOpacity
               onPress={() => router.push(`/(coordinator)/parent/${primaryPerson?.id || 'dad'}/profile` as any)}
               className="bg-slate-50 border border-slate-200/80 rounded-2xl p-3 flex-row items-center justify-between active:bg-slate-100"
             >
-              <View className="flex-row items-center gap-2.5">
-                <View className="w-8 h-8 rounded-lg bg-blue-100 items-center justify-center">
+              <View className="flex-row items-center gap-2.5 flex-1 min-w-0 mr-2">
+                <View className="w-8 h-8 rounded-lg bg-blue-100 items-center justify-center shrink-0">
                   <User size={15} color="#007aff" />
                 </View>
-                <View>
-                  <Text className="text-xs font-black text-slate-900">Parent Profile & FHIR ID</Text>
-                  <Text className="text-[10px] text-slate-500 font-medium">Verify resolved care subject link & MRN</Text>
+                <View className="flex-1 min-w-0">
+                  <Text className="text-xs font-black text-slate-900" numberOfLines={1}>Parent Profile & Medical ID</Text>
+                  <Text className="text-[10px] text-slate-500 font-medium" numberOfLines={1}>Care subject demographics & verified clinical link</Text>
                 </View>
               </View>
-              <ChevronRight size={15} color="#94a3b8" />
+              <ChevronRight size={15} color="#94a3b8" className="shrink-0" />
             </TouchableOpacity>
 
-            {/* 2. Vitals (FHIR-002) */}
+            {/* 2. Vitals */}
             <TouchableOpacity
               onPress={() => router.push(`/(coordinator)/parent/${primaryPerson?.id || 'dad'}/vitals` as any)}
               className="bg-slate-50 border border-slate-200/80 rounded-2xl p-3 flex-row items-center justify-between active:bg-slate-100"
             >
-              <View className="flex-row items-center gap-2.5">
-                <View className="w-8 h-8 rounded-lg bg-rose-100 items-center justify-center">
+              <View className="flex-row items-center gap-2.5 flex-1 min-w-0 mr-2">
+                <View className="w-8 h-8 rounded-lg bg-rose-100 items-center justify-center shrink-0">
                   <Activity size={15} color="#e11d48" />
                 </View>
-                <View>
-                  <Text className="text-xs font-black text-slate-900">{primaryName} Vitals & Observations</Text>
-                  <Text className="text-[10px] text-slate-500 font-medium">Latest observations, units (bpm, mmHg) & dates</Text>
+                <View className="flex-1 min-w-0">
+                  <Text className="text-xs font-black text-slate-900" numberOfLines={1}>{primaryName} Vitals & Observations</Text>
+                  <Text className="text-[10px] text-slate-500 font-medium" numberOfLines={1}>Latest blood pressure, glucose & telemetry history</Text>
                 </View>
               </View>
-              <ChevronRight size={15} color="#94a3b8" />
+              <ChevronRight size={15} color="#94a3b8" className="shrink-0" />
             </TouchableOpacity>
 
-            {/* 3. Conditions (FHIR-003) */}
+            {/* 3. Conditions */}
             <TouchableOpacity
               onPress={() => router.push(`/(coordinator)/parent/${primaryPerson?.id || 'dad'}/conditions` as any)}
               className="bg-slate-50 border border-slate-200/80 rounded-2xl p-3 flex-row items-center justify-between active:bg-slate-100"
             >
-              <View className="flex-row items-center gap-2.5">
-                <View className="w-8 h-8 rounded-lg bg-indigo-100 items-center justify-center">
+              <View className="flex-row items-center gap-2.5 flex-1 min-w-0 mr-2">
+                <View className="w-8 h-8 rounded-lg bg-indigo-100 items-center justify-center shrink-0">
                   <Stethoscope size={15} color="#4f46e5" />
                 </View>
-                <View>
-                  <Text className="text-xs font-black text-slate-900">Health Profile & Conditions</Text>
-                  <Text className="text-[10px] text-slate-500 font-medium">ICD-10 diagnoses (I10, E11.9) from FHIR</Text>
+                <View className="flex-1 min-w-0">
+                  <Text className="text-xs font-black text-slate-900" numberOfLines={1}>Health Profile & Conditions</Text>
+                  <Text className="text-[10px] text-slate-500 font-medium" numberOfLines={1}>Medical conditions, diagnoses & clinical history</Text>
                 </View>
               </View>
-              <ChevronRight size={15} color="#94a3b8" />
+              <ChevronRight size={15} color="#94a3b8" className="shrink-0" />
             </TouchableOpacity>
 
-            {/* 4. Medications (FHIR-004) */}
+            {/* 4. Medications */}
             <TouchableOpacity
               onPress={() => router.push(`/(coordinator)/parent/${primaryPerson?.id || 'dad'}/medications` as any)}
               className="bg-slate-50 border border-slate-200/80 rounded-2xl p-3 flex-row items-center justify-between active:bg-slate-100"
             >
-              <View className="flex-row items-center gap-2.5">
-                <View className="w-8 h-8 rounded-lg bg-amber-100 items-center justify-center">
+              <View className="flex-row items-center gap-2.5 flex-1 min-w-0 mr-2">
+                <View className="w-8 h-8 rounded-lg bg-amber-100 items-center justify-center shrink-0">
                   <Pill size={15} color="#d97706" />
                 </View>
-                <View>
-                  <Text className="text-xs font-black text-slate-900">Medications & Adherence</Text>
-                  <Text className="text-[10px] text-slate-500 font-medium">FHIR MedicationRequest + KinGuardian adherence</Text>
+                <View className="flex-1 min-w-0">
+                  <Text className="text-xs font-black text-slate-900" numberOfLines={1}>Medications & Adherence</Text>
+                  <Text className="text-[10px] text-slate-500 font-medium" numberOfLines={1}>Prescriptions, dosages & family adherence logs</Text>
                 </View>
               </View>
-              <ChevronRight size={15} color="#94a3b8" />
+              <ChevronRight size={15} color="#94a3b8" className="shrink-0" />
             </TouchableOpacity>
 
-            {/* 5. Labs (FHIR-005) */}
+            {/* 5. Labs */}
             <TouchableOpacity
               onPress={() => router.push(`/(coordinator)/parent/${primaryPerson?.id || 'dad'}/labs` as any)}
               className="bg-slate-50 border border-slate-200/80 rounded-2xl p-3 flex-row items-center justify-between active:bg-slate-100"
             >
-              <View className="flex-row items-center gap-2.5">
-                <View className="w-8 h-8 rounded-lg bg-emerald-100 items-center justify-center">
+              <View className="flex-row items-center gap-2.5 flex-1 min-w-0 mr-2">
+                <View className="w-8 h-8 rounded-lg bg-emerald-100 items-center justify-center shrink-0">
                   <FileText size={15} color="#059669" />
                 </View>
-                <View>
-                  <Text className="text-xs font-black text-slate-900">Laboratory & Diagnostic Reports</Text>
-                  <Text className="text-[10px] text-slate-500 font-medium">Metabolic & renal panel, HbA1c, reference ranges</Text>
+                <View className="flex-1 min-w-0">
+                  <Text className="text-xs font-black text-slate-900" numberOfLines={1}>Laboratory & Diagnostic Reports</Text>
+                  <Text className="text-[10px] text-slate-500 font-medium" numberOfLines={1}>Lab panels, blood tests & diagnostic reports</Text>
                 </View>
               </View>
-              <ChevronRight size={15} color="#94a3b8" />
+              <ChevronRight size={15} color="#94a3b8" className="shrink-0" />
             </TouchableOpacity>
           </View>
         </View>
 
         {/* Guardian Baseline Card */}
         <View className="space-y-2">
-          <View className="flex-row items-center justify-between px-1">
-            <Text className="text-xs font-bold text-neutral-400 uppercase tracking-wider">
+          <View className="flex-row items-center justify-between px-1 flex-wrap gap-y-1">
+            <Text className="text-xs font-bold text-neutral-400 uppercase tracking-wider flex-1 min-w-[120px] mr-2">
               Guardian Baseline
             </Text>
-            <View className="flex-row items-center gap-1 bg-purple-50 px-2.5 py-0.5 rounded-full border border-purple-100">
+            <View className="flex-row items-center gap-1 bg-purple-50 px-2.5 py-0.5 rounded-full border border-purple-100 shrink-0">
               <Sparkles size={10} color="#af52de" />
               <Text className="text-[9px] font-bold text-[#af52de]">Deterministic Engine</Text>
             </View>
@@ -1429,20 +1647,20 @@ export const HealthDashboard: React.FC<HealthDashboardProps> = ({
             className="bg-white rounded-3xl p-5 shadow-sm shadow-neutral-100 space-y-3.5 border-l-4 border-[#007aff]"
           >
             <View className="flex-row justify-between items-start">
-              <View className="flex-row items-center gap-2.5">
-                <View className="w-8 h-8 rounded-full bg-blue-50 items-center justify-center">
+              <View className="flex-row items-center gap-2.5 flex-1 min-w-0 mr-2">
+                <View className="w-8 h-8 rounded-full bg-blue-50 items-center justify-center shrink-0">
                   <TrendingUp size={16} color="#007aff" />
                 </View>
-                <View>
-                  <Text className="text-sm font-bold text-neutral-900">
+                <View className="flex-1 min-w-0">
+                  <Text className="text-sm font-bold text-neutral-900" numberOfLines={1}>
                     {primaryName}'s 30-Day Health Baseline
                   </Text>
-                  <Text className="text-[10px] text-neutral-400 font-semibold">
+                  <Text className="text-[10px] text-neutral-400 font-semibold" numberOfLines={1}>
                     Calculated from continuous telemetry & clinical logs
                   </Text>
                 </View>
               </View>
-              <View className="bg-blue-50 px-2 py-0.5 rounded-full">
+              <View className="bg-blue-50 px-2 py-0.5 rounded-full shrink-0">
                 <Text className="text-[9px] font-bold text-[#007aff] uppercase">Active</Text>
               </View>
             </View>
@@ -1487,9 +1705,19 @@ export const HealthDashboard: React.FC<HealthDashboardProps> = ({
 
         {/* Family Members Focus Switcher */}
         <View className="space-y-2">
-          <Text className="text-xs font-bold text-neutral-400 uppercase tracking-wider pl-1">
-            Family Members ({displayFamilyMembers.length})
-          </Text>
+          <View className="flex-row items-center justify-between pl-1">
+            <Text className="text-xs font-bold text-neutral-400 uppercase tracking-wider">
+              Family Members ({displayFamilyMembers.length})
+            </Text>
+            <TouchableOpacity
+              testID="dashboard-add-parent-header-btn"
+              onPress={() => router.push('/(coordinator)/parents' as any)}
+              className="flex-row items-center gap-1 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200 active:bg-blue-100"
+            >
+              <Plus size={12} color="#007aff" />
+              <Text className="text-[10px] font-bold text-blue-600">Add Parent</Text>
+            </TouchableOpacity>
+          </View>
           <View className="space-y-2">
             {displayFamilyMembers.map((person: any, idx: number) => {
               const isSelected = person.id === currentPersonId || person.backendSubjectId === currentPersonId;
@@ -1505,21 +1733,22 @@ export const HealthDashboard: React.FC<HealthDashboardProps> = ({
                     isSelected ? 'border-[#007aff] bg-blue-50/20' : 'border-neutral-100'
                   }`}
                 >
-                  <View className="flex-row items-center gap-3.5">
+                  <View className="flex-row items-center gap-3.5 flex-1 min-w-0 mr-2">
                     <Image
                       source={{ uri: person.avatarUrl || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e' }}
-                      className="w-10 h-10 rounded-full"
+                      className="w-10 h-10 rounded-full shrink-0"
                     />
-                    <View className="space-y-0.5">
-                      <View className="flex-row items-center gap-1.5">
+                    <View className="space-y-0.5 flex-1 min-w-0">
+                      <View className="flex-row items-center gap-1.5 flex-wrap">
                         <Text className="text-sm font-bold text-neutral-900">{cleanName}</Text>
                         {isSelected && (
-                          <View className="bg-[#eff6ff] px-2 py-0.5 rounded-full border border-blue-100">
+                          <View className="bg-[#eff6ff] px-2 py-0.5 rounded-full border border-blue-100 shrink-0">
                             <Text className="text-[8px] font-bold text-[#007aff] uppercase">Active Focus</Text>
                           </View>
                         )}
                       </View>
                       <Text
+                        numberOfLines={1}
                         className={`text-[10px] font-semibold ${
                           person.wellbeingStatus === 'attention' ? 'text-[#ff3b30]' : 'text-[#34c759]'
                         }`}
@@ -1530,14 +1759,30 @@ export const HealthDashboard: React.FC<HealthDashboardProps> = ({
                       </Text>
                     </View>
                   </View>
-                  <ChevronRight size={16} color={isSelected ? '#007aff' : '#8e8e93'} />
+                  <ChevronRight size={16} color={isSelected ? '#007aff' : '#8e8e93'} className="shrink-0" />
                 </TouchableOpacity>
               );
             })}
 
             {displayFamilyMembers.length === 0 && (
-              <View className="bg-white rounded-3xl p-4 items-center justify-center">
-                <Text className="text-xs text-neutral-400">No family members registered yet</Text>
+              <View testID="dashboard-no-parents-banner" className="bg-white rounded-3xl p-6 items-center justify-center border border-dashed border-blue-200 shadow-sm space-y-3">
+                <View className="w-12 h-12 rounded-full bg-blue-50 items-center justify-center">
+                  <Users size={24} color="#007aff" />
+                </View>
+                <View className="items-center">
+                  <Text className="text-sm font-bold text-neutral-900">No Parents Added Yet</Text>
+                  <Text className="text-xs text-neutral-500 text-center mt-1 max-w-xs leading-relaxed">
+                    Connect your parents' profiles to monitor vitals, medications, and care check-ins across borders.
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  testID="dashboard-setup-parents-button"
+                  onPress={() => router.push('/(auth)/location' as any)}
+                  className="bg-[#007aff] px-4 py-2.5 rounded-xl flex-row items-center gap-1.5 shadow-sm active:bg-blue-700"
+                >
+                  <Plus size={14} color="#ffffff" strokeWidth={2.5} />
+                  <Text className="text-xs font-bold text-white">Add Parents & Set Up Care Circle</Text>
+                </TouchableOpacity>
               </View>
             )}
           </View>
@@ -1553,14 +1798,14 @@ export const HealthDashboard: React.FC<HealthDashboardProps> = ({
             {/* Update 1: Primary Checked In */}
             <View className="space-y-3">
               <View className="flex-row justify-between items-start">
-                <View className="flex-row items-center gap-2">
+                <View className="flex-row items-center gap-2 flex-1 min-w-0 mr-2">
                   <View className="w-1.5 h-1.5 rounded-full bg-[#007aff] shrink-0" />
-                  <Text className="text-xs font-bold text-neutral-850">{primaryName} checked in</Text>
+                  <Text className="text-xs font-bold text-neutral-850 flex-1 min-w-0" numberOfLines={1}>{primaryName} checked in</Text>
                 </View>
                 <Text
                   testID="coordinator-checkin-timestamp"
                   accessibilityLabel={latestCheckInIso}
-                  className="text-[10px] text-neutral-400 font-bold uppercase"
+                  className="text-[10px] text-neutral-400 font-bold uppercase shrink-0"
                 >
                   {latestCheckInDisplay}
                 </Text>
@@ -1675,20 +1920,20 @@ export const HealthDashboard: React.FC<HealthDashboardProps> = ({
         <View testID="appointment-prep-modal" className="absolute inset-0 bg-black/60 z-50 justify-end">
           <View className="bg-white rounded-t-3xl max-h-[85%] p-6 space-y-4 shadow-2xl">
             <View className="flex-row items-center justify-between border-b border-slate-100 pb-3">
-              <View className="flex-row items-center gap-2">
-                <View className="w-8 h-8 rounded-full bg-blue-50 items-center justify-center">
+              <View className="flex-row items-center gap-2 flex-1 min-w-0 mr-2">
+                <View className="w-8 h-8 rounded-full bg-blue-50 items-center justify-center shrink-0">
                   <Calendar size={16} color="#007aff" />
                 </View>
-                <View>
-                  <Text testID="appointment-prep-header" className="text-sm font-bold text-slate-900">
+                <View className="flex-1 min-w-0">
+                  <Text testID="appointment-prep-header" className="text-sm font-bold text-slate-900" numberOfLines={1}>
                     Appointment Preparation
                   </Text>
-                  <Text testID="appointment-prep-meta" className="text-[10px] text-slate-500 font-medium">
-                    {appointmentData?.doctor_name || 'Dr. Sharma'} • {appointmentData?.specialty || 'Cardiology'} • {appointmentData?.date || 'Tomorrow'}, {appointmentData?.time || '4:00 PM'}
+                  <Text testID="appointment-prep-meta" className="text-[10px] text-slate-500 font-medium" numberOfLines={1}>
+                    {appointmentData?.doctor_name || (isDemoDad ? 'Dr. Sharma' : 'Attending Physician')} • {appointmentData?.specialty || (isDemoDad ? 'Cardiology' : 'General Consultation')} • {appointmentData?.date || (isDemoDad ? 'Tomorrow' : 'Not scheduled')}, {appointmentData?.time || (isDemoDad ? '4:00 PM' : 'Routine')}
                   </Text>
                 </View>
               </View>
-              <TouchableOpacity testID="appointment-prep-close" onPress={() => setAppointmentModalOpen(false)} className="p-1.5 bg-slate-100 rounded-full">
+              <TouchableOpacity testID="appointment-prep-close" onPress={() => setAppointmentModalOpen(false)} className="p-1.5 bg-slate-100 rounded-full shrink-0">
                 <X size={16} color="#64748b" />
               </TouchableOpacity>
             </View>
@@ -1710,7 +1955,9 @@ export const HealthDashboard: React.FC<HealthDashboardProps> = ({
                   </View>
                   <Text testID="appointment-prep-clinical-summary" className="text-xs text-slate-700 leading-relaxed font-medium">
                     {appointmentData?.clinical_summary ||
-                      `${primaryName} (68M) scheduled for Cardiology follow-up. Blood pressure trending 128/82 mmHg. HbA1c 6.8% (elevated target < 6.5%). Occasional PVC burden < 0.8% detected on Holter. Active medications: Atorvastatin 20mg nightly, Metformin 500mg twice daily.`}
+                      (isDemoDad
+                        ? `${primaryName} (68M) scheduled for Cardiology follow-up. Blood pressure trending 128/82 mmHg. HbA1c 6.8% (elevated target < 6.5%). Occasional PVC burden < 0.8% detected on Holter. Active medications: Atorvastatin 20mg nightly, Metformin 500mg twice daily.`
+                        : `Consultation agenda prepared for ${primaryName}. Routine wellness profile established with no acute clinical deviations.`)}
                   </Text>
                 </View>
 
@@ -1719,11 +1966,15 @@ export const HealthDashboard: React.FC<HealthDashboardProps> = ({
                   <Text className="text-xs font-bold text-slate-800 uppercase tracking-wider">
                     Suggested Doctor Questions (Contextual)
                   </Text>
-                  {(appointmentData?.suggested_questions || [
+                  {(appointmentData?.suggested_questions || (isDemoDad ? [
                     `Should ${primaryName} continue taking Metformin 500mg with current HbA1c at 6.8%?`,
                     'Is the occasional PVC rhythm (< 0.8% burden) benign given recent exertion?',
                     'Are any adjustments needed for Atorvastatin 20mg before the next lipid panel?'
-                  ]).map((q: string, qIdx: number) => {
+                  ] : [
+                    `Are there any baseline health screenings or panel checks due for ${primaryName}?`,
+                    `What vital target thresholds should we monitor daily for ${primaryName}?`,
+                    'Should any additional preventative or routine checkups be scheduled?'
+                  ])).map((q: string, qIdx: number) => {
                     const isChecked = !!checkedQuestions[qIdx];
                     return (
                       <TouchableOpacity
@@ -1763,11 +2014,15 @@ export const HealthDashboard: React.FC<HealthDashboardProps> = ({
                     Permitted Recipients (Access Authorized)
                   </Text>
                   <View className="flex-row flex-wrap gap-2">
-                    {(appointmentData?.permitted_recipients || [
+                    {(appointmentData?.permitted_recipients || (isDemoDad ? [
                       'Dr. Sharma (Cardiology)',
                       'Apollo Hospital Care Team',
                       `${caregiverName} (Caregiver)`
-                    ]).map((rec: string, rIdx: number) => {
+                    ] : [
+                      'Attending Physician',
+                      'Care Team Registry',
+                      `${caregiverName} (Caregiver)`
+                    ])).map((rec: string, rIdx: number) => {
                       const isSelected = selectedRecipient === rec;
                       return (
                         <TouchableOpacity

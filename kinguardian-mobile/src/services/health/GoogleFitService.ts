@@ -302,6 +302,24 @@ class GoogleFitService {
         }
       }
 
+      const hasRealDevice = Boolean((realData?.isRealDeviceData && realData.steps > 0) || steps > 0 || (this.isConnected && this.currentTelemetry.isConnected));
+
+      if (!hasRealDevice) {
+        this.isConnected = false;
+        this.currentTelemetry = {
+          steps: 0,
+          heartRate: 0,
+          sleepMinutes: 0,
+          source: 'none',
+          isConnected: false,
+          lastUpdated: new Date(),
+          isStreaming: false,
+          provenance: 'No device connected'
+        };
+        this.notifyListeners();
+        return this.currentTelemetry;
+      }
+
       // Never decrease daily step count (monotonically non-decreasing for today)
       steps = Math.max(steps, this.currentTelemetry.steps || 0);
       heartRate = heartRate || this.currentTelemetry.heartRate || 72;
@@ -311,7 +329,7 @@ class GoogleFitService {
         steps,
         heartRate,
         sleepMinutes,
-        source: realData?.isRealDeviceData && realData.steps > 0 ? 'health_connect' : (this.currentTelemetry.source || 'health_connect'),
+        source: realData?.isRealDeviceData && realData.steps > 0 ? 'health_connect' : (this.currentTelemetry.source !== 'none' ? this.currentTelemetry.source : 'health_connect'),
         isConnected: true,
         lastUpdated: new Date(),
         isStreaming: true,

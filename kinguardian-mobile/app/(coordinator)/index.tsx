@@ -85,11 +85,26 @@ export default function CoordinatorDashboardRoute() {
                 .replace(/\s*\(coordinator\)/i, '')
                 .replace(/Sync\s*\d+/i, '')
                 .trim();
+              const profAny = profile as any;
+              let coordLoc = '';
+              if (profAny.city && profAny.country && profAny.city !== profAny.country) {
+                coordLoc = `${profAny.city}, ${profAny.country}`;
+              } else if (profAny.country) {
+                coordLoc = profAny.country;
+              } else if (profAny.city) {
+                coordLoc = profAny.city;
+              } else if (profAny.location) {
+                coordLoc = profAny.location;
+              } else if (profile.timezone) {
+                coordLoc = profile.timezone;
+              } else {
+                coordLoc = 'Coordinator';
+              }
               context.setCurrentUser({
                 id: profile.id,
                 name: cleanCoordName,
                 age: 30,
-                location: profile.timezone || 'Asia/Kolkata',
+                location: coordLoc,
                 role: userRole,
                 relation: userRole === 'caregiver' ? 'Caregiver' : 'Coordinator',
                 avatarUrl: ''
@@ -180,6 +195,37 @@ export default function CoordinatorDashboardRoute() {
                   }
 
                   const isMom = relation.toLowerCase().includes('mother');
+
+                  // Resolve matching member to retrieve accurate geographical city/country
+                  const matchingMember: any = (members && members.length > 0)
+                    ? members.find((m: any) =>
+                        m.role === 'parent' &&
+                        ((m.profile_id && cs.profile_id && m.profile_id === cs.profile_id) ||
+                         (m.id && cs.id && m.id === cs.id) ||
+                         (m.id && cs.profile_id && m.id === cs.profile_id) ||
+                         (m.display_name && parsedRef.name && m.display_name.toLowerCase() === parsedRef.name.toLowerCase()) ||
+                         (m.name && parsedRef.name && m.name.toLowerCase() === parsedRef.name.toLowerCase()))
+                      )
+                    : null;
+
+                  const rawCity = (parsedRef.city && parsedRef.city !== 'Not provided')
+                    ? parsedRef.city
+                    : (matchingMember?.city && matchingMember.city !== 'Not provided'
+                        ? matchingMember.city
+                        : (cs.city && cs.city !== 'Not provided' ? cs.city : 'Hyderabad'));
+
+                  const rawCountry = (parsedRef.country && parsedRef.country !== 'Not provided')
+                    ? parsedRef.country
+                    : (matchingMember?.country && matchingMember.country !== 'Not provided'
+                        ? matchingMember.country
+                        : (cs.country && cs.country !== 'Not provided' ? cs.country : 'India'));
+
+                  const cleanCountry = (rawCountry === 'IN' || rawCountry === 'IND') ? 'India' : rawCountry;
+                  const finalCity = rawCity;
+                  const finalLocation = (matchingMember?.location && matchingMember.location !== 'Not provided' && !matchingMember.location.includes('/'))
+                    ? matchingMember.location
+                    : `${finalCity}, ${cleanCountry}`;
+
                   return {
                     id: cs.id,
                     backendSubjectId: cs.id,
@@ -188,11 +234,12 @@ export default function CoordinatorDashboardRoute() {
                     relationship: relation,
                     relation: relation,
                     avatarUrl: isMom ? momAvatar : dadAvatar,
-                    location: cs.preferred_timezone || 'Asia/Kolkata',
+                    location: finalLocation,
                     age: parsedRef.age || (isMom ? 62 : 68),
-                    city: parsedRef.city || 'Chennai',
-                    country: 'India',
-                    timezone: cs.preferred_timezone || 'Asia/Kolkata',
+                    city: finalCity,
+                    country: cleanCountry,
+                    timezone: cs.preferred_timezone || matchingMember?.timezone || 'Asia/Kolkata',
+                    external_patient_ref: cs.external_patient_ref,
                     wellbeingStatus: 'doing-well' as const
                   };
                 });
@@ -223,6 +270,31 @@ export default function CoordinatorDashboardRoute() {
                       if (isAni) relation = 'Father';
                       if (isVan) relation = 'Mother';
                       const isMom = relation.toLowerCase().includes('mother');
+
+                      const matchingSub = (subjects || []).find((s: any) =>
+                        (s.profile_id && pm.profile_id && s.profile_id === pm.profile_id) ||
+                        (s.id && pm.id && s.id === pm.id) ||
+                        (s.profile_id && pm.id && s.profile_id === pm.id)
+                      );
+                      let parsedRef: any = {};
+                      if (matchingSub?.external_patient_ref) {
+                        try {
+                          parsedRef = typeof matchingSub.external_patient_ref === 'string'
+                            ? JSON.parse(matchingSub.external_patient_ref)
+                            : matchingSub.external_patient_ref;
+                        } catch {}
+                      }
+                      const rawCity = (pm.city && pm.city !== 'Not provided')
+                        ? pm.city
+                        : (parsedRef.city && parsedRef.city !== 'Not provided' ? parsedRef.city : 'Hyderabad');
+                      const rawCountry = (pm.country && pm.country !== 'Not provided')
+                        ? pm.country
+                        : (parsedRef.country && parsedRef.country !== 'Not provided' ? parsedRef.country : 'India');
+                      const cleanCountry = (rawCountry === 'IN' || rawCountry === 'IND') ? 'India' : rawCountry;
+                      const finalLocation = (pm.location && pm.location !== 'Not provided' && !pm.location.includes('/'))
+                        ? pm.location
+                        : `${rawCity}, ${cleanCountry}`;
+
                       mappedSubjects.push({
                         id: pm.profile_id || pm.id,
                         backendSubjectId: pm.profile_id || pm.id,
@@ -231,18 +303,30 @@ export default function CoordinatorDashboardRoute() {
                         relationship: relation,
                         relation: relation,
                         avatarUrl: isMom ? momAvatar : dadAvatar,
-                        location: pm.timezone || 'Asia/Kolkata',
+                        location: finalLocation,
                         age: isMom ? 62 : 68,
-                        city: 'Chennai',
-                        country: 'India',
+                        city: rawCity,
+                        country: cleanCountry,
                         timezone: pm.timezone || 'Asia/Kolkata',
+                        external_patient_ref: matchingSub?.external_patient_ref,
                         wellbeingStatus: 'doing-well' as const
                       });
                     }
                   });
                 }
 
-                context.setPeople(mappedSubjects);
+                // Deduplicate mapped subjects by name or relationship
+                const dedupedSubjects: typeof mappedSubjects = [];
+                const seenKeys = new Set<string>();
+                mappedSubjects.forEach((s) => {
+                  const key = (s.name || '').trim().toLowerCase() || (s.relationship || '').trim().toLowerCase();
+                  if (!seenKeys.has(key)) {
+                    seenKeys.add(key);
+                    dedupedSubjects.push(s);
+                  }
+                });
+
+                context.setPeople(dedupedSubjects);
               }
 
               // Update context with the family members returned by the backend.
@@ -313,6 +397,10 @@ export default function CoordinatorDashboardRoute() {
             } catch (memberErr) {
               console.warn('Error loading family data:', memberErr);
             }
+          } else {
+            console.log('Coordinator has no active families, redirecting to onboarding setup...');
+            router.replace('/(auth)/location');
+            return;
           }
           
         } else {
@@ -469,6 +557,7 @@ export default function CoordinatorDashboardRoute() {
           isOpen={notificationsOpen}
           onClose={() => setNotificationsOpen(false)}
           notifications={coordinatorNotifications}
+          parentName={currentPerson?.name || 'Parent'}
           onMarkRead={context.handleMarkRead}
           onNavigateScreen={(screen) => {
             if (screen === 'vitals_detail') {

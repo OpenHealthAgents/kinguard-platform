@@ -12,7 +12,6 @@ import {
   KeyRound,
   Users,
   Stethoscope,
-  HeartHandshake,
   Shield,
   X,
   ChevronRight,
@@ -248,9 +247,13 @@ export default function ParentProfileRoute() {
           <Text className="text-2xl font-bold text-neutral-900 tracking-tight">My Profile</Text>
         </View>
 
-        <ScrollView className="flex-1 p-5 space-y-5">
+        <ScrollView
+          className="flex-1"
+          contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 40 }}
+          showsVerticalScrollIndicator={false}
+        >
           {/* Options List Inset Grouped */}
-          <View className="bg-white border border-neutral-100 rounded-2xl shadow-sm divide-y divide-neutral-200/80 overflow-hidden">
+          <View className="bg-white border border-neutral-100 rounded-2xl shadow-sm divide-y divide-neutral-200/80 overflow-hidden mb-4">
             {profileOptions.map((opt, idx) => {
               const IconComponent = opt.icon;
               return (
@@ -303,29 +306,11 @@ export default function ParentProfileRoute() {
                 'Log Out'
               );
             }}
-            className="p-4 rounded-2xl border border-red-100 bg-white flex-row items-center justify-center gap-2 active:bg-red-50"
+            className="p-4 rounded-2xl border border-red-100 bg-white flex-row items-center justify-center gap-2 active:bg-red-50 mb-6 shadow-2xs"
           >
             <LogOut size={16} color="#ff3b30" />
             <Text className="text-xs font-bold text-[#ff3b30]">Log out</Text>
           </TouchableOpacity>
-
-          {/* Simple Swapper CTA */}
-          <View className="bg-white border border-neutral-100 rounded-2xl p-5 space-y-3 shadow-sm">
-            <View className="flex-row items-center gap-2">
-              <HeartHandshake size={18} color="#007aff" />
-              <Text className="text-sm font-bold text-neutral-900">Switch Views</Text>
-            </View>
-            <TouchableOpacity
-              onPress={() => {
-                context.setAppMode('coordinator');
-                context.showToast(`Switched view to ${coordName} (Coordinator Mode)`);
-                router.replace('/(coordinator)');
-              }}
-              className="w-full bg-[#007aff] py-3.5 rounded-xl items-center justify-center active:opacity-95 shadow-xs"
-            >
-              <Text className="text-white text-xs font-bold">Switch to {coordName}'s View</Text>
-            </TouchableOpacity>
-          </View>
 
           <View className="h-28" />
         </ScrollView>

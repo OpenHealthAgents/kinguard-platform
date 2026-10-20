@@ -366,28 +366,30 @@ export const DocumentVault: React.FC<DocumentVaultProps> = ({
             </TouchableOpacity>
 
             {/* Quick 1-Tap Ingestion Callout: No external file upload needed */}
-            <View className="bg-gradient-to-r from-blue-50 to-indigo-50/70 p-3 rounded-xl border border-blue-100 flex-row items-center justify-between shadow-xs">
-              <View className="flex-1 mr-2">
-                <View className="flex-row items-center gap-1">
-                  <Zap size={12} color="#007aff" />
-                  <Text className="text-[10px] font-bold text-[#007aff] uppercase tracking-wider">
-                    Quick Sample Lab Report
+            {process.env.EXPO_PUBLIC_USE_MOCK_DATA === 'true' && (
+              <View className="bg-gradient-to-r from-blue-50 to-indigo-50/70 p-3 rounded-xl border border-blue-100 flex-row items-center justify-between shadow-xs">
+                <View className="flex-1 mr-2">
+                  <View className="flex-row items-center gap-1">
+                    <Zap size={12} color="#007aff" />
+                    <Text className="text-[10px] font-bold text-[#007aff] uppercase tracking-wider">
+                      Quick Sample Lab Report
+                    </Text>
+                  </View>
+                  <Text className="text-[10px] text-neutral-600 font-medium mt-0.5">
+                    Apollo_Panel_2026.pdf — sample lab report for preview.
                   </Text>
                 </View>
-                <Text className="text-[10px] text-neutral-600 font-medium mt-0.5">
-                  Apollo_Panel_2026.pdf — sample lab report for preview.
-                </Text>
+                <TouchableOpacity
+                  onPress={() => {
+                    handleSelectSource('preset', 0);
+                  }}
+                  testID="document-vault-quick-ingest"
+                  className="bg-[#007aff] px-3 py-1.5 rounded-lg active:scale-95"
+                >
+                  <Text className="text-[10px] font-bold text-white uppercase">1-Tap Ingest</Text>
+                </TouchableOpacity>
               </View>
-              <TouchableOpacity
-                onPress={() => {
-                  handleSelectSource('preset', 0);
-                }}
-                testID="document-vault-quick-ingest"
-                className="bg-[#007aff] px-3 py-1.5 rounded-lg active:scale-95"
-              >
-                <Text className="text-[10px] font-bold text-white uppercase">1-Tap Ingest</Text>
-              </TouchableOpacity>
-            </View>
+            )}
           </View>
         )}
 
@@ -740,7 +742,18 @@ export const DocumentVault: React.FC<DocumentVaultProps> = ({
             Processed Medical Files (Tap to View Parsed Metrics)
           </Text>
           <View className="space-y-3">
-            {documents.map((doc) => {
+            {documents.length === 0 ? (
+              <View className="bg-white rounded-2xl p-8 border border-neutral-200/80 items-center justify-center space-y-2">
+                <FolderOpen size={28} color="#94a3b8" />
+                <Text className="text-sm font-bold text-slate-700">
+                  No medical documents uploaded yet
+                </Text>
+                <Text className="text-xs text-slate-500 font-medium text-center max-w-[280px]">
+                  Upload lab reports, discharge summaries, or prescriptions for {parentName} to securely extract and store clinical metrics.
+                </Text>
+              </View>
+            ) : (
+              documents.map((doc) => {
               const isExpanded = selectedDocId === doc.id;
               const isApproved = reviewedDocIds[doc.id] || doc.approvedByCoordinator;
 
@@ -1001,8 +1014,9 @@ export const DocumentVault: React.FC<DocumentVaultProps> = ({
                   )}
                 </View>
               );
-            })}
-          </View>
+            })
+          )}
+        </View>
         </View>
       </View>
     </ScrollView>
