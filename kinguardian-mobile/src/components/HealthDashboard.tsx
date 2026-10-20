@@ -538,7 +538,7 @@ export const HealthDashboard: React.FC<HealthDashboardProps> = ({
       {/* Main Full-Screen ScrollView */}
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 120, gap: 24 }}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 80, gap: 24 }}
       >
         {/* Hero Greeting */}
         <View className="space-y-1">
@@ -1662,7 +1662,7 @@ export const HealthDashboard: React.FC<HealthDashboardProps> = ({
 
 
         {/* Quick Actions Action Grid */}
-        <View className="space-y-2 mb-12">
+        <View className="space-y-2">
           <Text className="text-xs font-bold text-neutral-400 uppercase tracking-wider pl-1">
             Quick Actions
           </Text>
@@ -1704,7 +1704,6 @@ export const HealthDashboard: React.FC<HealthDashboardProps> = ({
               <Text className="text-xs font-bold text-neutral-800 text-center">Add Med</Text>
             </TouchableOpacity>
           </View>
-          <View className="h-28" />
         </View>
       </ScrollView>
 
