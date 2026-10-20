@@ -24,6 +24,7 @@ import { AppContext } from '../../../../src/store/AppContext';
 import { DeviceFrame } from '../../../../src/components/DeviceFrame';
 import { SimulatorControls } from '../../../../src/components/SimulatorControls';
 import { Avatar } from '../../../../src/components/ui/Avatar';
+import { formatProviderName, formatShortSource } from '../../../../src/components/WearablesManagementScreen';
 import { googleFitService } from '../../../../src/services/health/GoogleFitService';
 import { realDataService } from '../../../../src/services/api-client/RealDataService';
 
@@ -150,16 +151,18 @@ export default function ParentClinicalOverviewRoute() {
   const resolvedMrn = parsedRef.uid
     ? `MRN-${String(parsedRef.uid).toUpperCase()}`
     : (person.backendSubjectId ? `MRN-${String(person.backendSubjectId).slice(0, 8).toUpperCase()}` : 'MRN-812AA854');
-  const resolvedClinic = parentSummary?.diagnostic_reports?.[0]?.performer || 'Apollo Hospitals, Jubilee Hills';
+  const resolvedClinic = parentSummary?.diagnostic_reports?.[0]?.performer || 'Apollo Diagnostics';
 
   // 2. Vitals (BP, Glucose, HR, Steps, Sleep)
   const displayBP = (() => {
-    if (context.currentBP && context.currentBP !== '--') return context.currentBP;
     if (vitalsData?.blood_pressure?.systolic && vitalsData?.blood_pressure?.diastolic) {
       return `${vitalsData.blood_pressure.systolic}/${vitalsData.blood_pressure.diastolic} mmHg`;
     }
     if (parentSummary?.vitals_summary?.blood_pressure) {
       return parentSummary.vitals_summary.blood_pressure;
+    }
+    if (person.id === 'dad' && context.currentBP && context.currentBP !== '--') {
+      return context.currentBP;
     }
     if (context.bpHistory && context.bpHistory.length > 0) {
       const latest = context.bpHistory[context.bpHistory.length - 1];
@@ -167,43 +170,55 @@ export default function ParentClinicalOverviewRoute() {
         return `${latest.systolic}/${latest.diastolic} mmHg`;
       }
     }
-    return isDad ? '138/88 mmHg' : '124/82 mmHg';
+    return isDad ? '138/88 mmHg' : '136/85 mmHg';
   })();
 
   const displayGlucose = (() => {
-    if (context.currentGlucose && context.currentGlucose !== '--') return context.currentGlucose;
     if (parentSummary?.vitals_summary?.fasting_glucose) {
       return parentSummary.vitals_summary.fasting_glucose.replace(/\s*mg\/dL/i, '');
+    }
+    if (vitalsData?.glucose?.value) {
+      return String(vitalsData.glucose.value);
+    }
+    if (person.id === 'dad' && context.currentGlucose && context.currentGlucose !== '--') {
+      return context.currentGlucose;
     }
     if (context.glucoseHistory && context.glucoseHistory.length > 0) {
       const latest = context.glucoseHistory[context.glucoseHistory.length - 1];
       if (latest?.value) return String(latest.value);
     }
-    return isDad ? '104' : '96';
+    return isDad ? '104' : '98';
   })();
 
   const displayHR = telemetry.heartRate > 0
     ? telemetry.heartRate
-    : (vitalsData?.heart_rate?.value || (parentSummary?.vitals_summary?.heart_rate ? parseInt(parentSummary.vitals_summary.heart_rate) : 72));
+    : (vitalsData?.heart_rate?.value || (parentSummary?.vitals_summary?.heart_rate && parentSummary.vitals_summary.heart_rate !== '0 bpm' ? parseInt(parentSummary.vitals_summary.heart_rate) : 70));
 
   const displaySteps = telemetry.steps > 0
     ? telemetry.steps
-    : (vitalsData?.steps?.value || parentSummary?.vitals_summary?.daily_steps || 3560);
+    : (vitalsData?.steps?.value || parentSummary?.vitals_summary?.daily_steps || 0);
 
   const displaySleepMinutes = telemetry.sleepMinutes > 0
     ? telemetry.sleepMinutes
-    : (parentSummary?.vitals_summary?.sleep_duration ? parseInt(parentSummary.vitals_summary.sleep_duration) : 465);
+    : (parentSummary?.vitals_summary?.sleep_duration ? parseInt(parentSummary.vitals_summary.sleep_duration) : 0);
 
   const systolicNum = parseInt((displayBP.split('/')[0] || '120').replace(/\D/g, ''), 10);
   const isNeedsAttention = systolicNum >= 140 || person.wellbeingStatus === 'attention';
 
   // 3. Dynamic Conditions Summary
+  const formatConditionName = (name: string) => {
+    return name
+      .replace(/\s*without complications/gi, '')
+      .replace(/\s*\(primary\)/gi, '')
+      .trim();
+  };
+
   const activeConditions = conditionsList.length > 0
     ? conditionsList
     : (parentSummary?.active_conditions || []);
   const conditionsSubtitle = activeConditions.length > 0
-    ? activeConditions.map((c: any) => c.display || c.name || c.code).slice(0, 3).join(', ')
-    : 'Essential Hypertension, Type 2 Diabetes, Routine Monitoring';
+    ? activeConditions.map((c: any) => formatConditionName(c.display || c.name || c.code)).slice(0, 2).join(', ')
+    : 'Essential Hypertension, Type 2 Diabetes';
 
   // 4. Dynamic Medications & Adherence Summary
   const allMeds = medicationsList.length > 0
@@ -235,7 +250,7 @@ export default function ParentClinicalOverviewRoute() {
       <View className="flex-1 relative bg-[#f8f9fc]">
         {/* Header */}
         <View className="px-5 py-4 border-b border-slate-200/80 bg-white flex-row items-center justify-between">
-          <View className="flex-row items-center gap-3">
+          <View className="flex-row items-center gap-3 flex-1 min-w-0 pr-2">
             <TouchableOpacity
               onPress={() => {
                 if (router.canGoBack()) {
@@ -244,22 +259,22 @@ export default function ParentClinicalOverviewRoute() {
                   router.push('/(coordinator)/parents');
                 }
               }}
-              className="p-2 bg-slate-100 rounded-full active:bg-slate-200"
+              className="p-2 bg-slate-100 rounded-full active:bg-slate-200 shrink-0"
             >
               <ArrowLeft size={18} color="#1e293b" />
             </TouchableOpacity>
-            <View>
-              <Text className="text-base font-black text-slate-900 leading-tight">
+            <View className="flex-1 min-w-0">
+              <Text className="text-base font-black text-slate-900 leading-tight" numberOfLines={1}>
                 {resolvedName}
               </Text>
-              <Text className="text-[10px] text-slate-500 font-medium">
+              <Text className="text-[10px] text-slate-500 font-medium" numberOfLines={1}>
                 {resolvedMrn} • <Text className="text-blue-600 font-semibold">{resolvedLocation}</Text>
               </Text>
             </View>
           </View>
 
           <View
-            className={`px-2.5 py-1 rounded-full flex-row items-center gap-1 border ${
+            className={`px-2.5 py-1 rounded-full flex-row items-center gap-1 border shrink-0 ${
               isNeedsAttention
                 ? 'bg-red-50 border-red-200'
                 : 'bg-emerald-50 border-emerald-200'
@@ -304,78 +319,80 @@ export default function ParentClinicalOverviewRoute() {
 
             {/* Quick Vitals Row */}
             <View className="flex-row gap-2 pt-2 border-t border-slate-100">
-              <View className="flex-1 bg-slate-50 p-2.5 rounded-2xl items-center border border-slate-100">
-                <Text className="text-[9px] font-bold text-slate-400 uppercase">Blood Pressure</Text>
-                <Text className="text-sm font-black text-slate-900 mt-0.5">{displayBP}</Text>
-                <Text className="text-[8px] text-emerald-600 font-bold">Latest Sync</Text>
+              <View className="flex-1 bg-slate-50 p-2.5 rounded-2xl items-center border border-slate-100 min-w-0">
+                <Text className="text-[9px] font-bold text-slate-400 uppercase" numberOfLines={1}>Blood Pressure</Text>
+                <Text className="text-xs sm:text-sm font-black text-slate-900 mt-0.5 text-center" numberOfLines={1}>{displayBP}</Text>
+                <Text className="text-[8px] text-emerald-600 font-bold text-center mt-0.5" numberOfLines={1}>Latest Sync</Text>
               </View>
-              <View className="flex-1 bg-slate-50 p-2.5 rounded-2xl items-center border border-slate-100">
-                <Text className="text-[9px] font-bold text-slate-400 uppercase">Glucose</Text>
-                <Text className="text-sm font-black text-slate-900 mt-0.5">{displayGlucose} mg/dL</Text>
-                <Text className="text-[8px] text-blue-600 font-bold">Fasting</Text>
+              <View className="flex-1 bg-slate-50 p-2.5 rounded-2xl items-center border border-slate-100 min-w-0">
+                <Text className="text-[9px] font-bold text-slate-400 uppercase" numberOfLines={1}>Glucose</Text>
+                <Text className="text-xs sm:text-sm font-black text-slate-900 mt-0.5 text-center" numberOfLines={1}>{displayGlucose} mg/dL</Text>
+                <Text className="text-[8px] text-blue-600 font-bold text-center mt-0.5" numberOfLines={1}>Fasting</Text>
               </View>
-              <View className="flex-1 bg-slate-50 p-2.5 rounded-2xl items-center border border-slate-100">
-                <Text className="text-[9px] font-bold text-slate-400 uppercase">Resting HR</Text>
-                <Text className="text-sm font-black text-slate-900 mt-0.5">{displayHR} bpm</Text>
-                <Text className="text-[8px] text-emerald-600 font-bold">Google Fit Live</Text>
+              <View className="flex-1 bg-slate-50 p-2.5 rounded-2xl items-center border border-slate-100 min-w-0">
+                <Text className="text-[9px] font-bold text-slate-400 uppercase" numberOfLines={1}>Resting HR</Text>
+                <Text className="text-xs sm:text-sm font-black text-slate-900 mt-0.5 text-center" numberOfLines={1}>{displayHR > 0 ? `${displayHR} bpm` : '--'}</Text>
+                <Text className="text-[8px] text-emerald-600 font-bold text-center mt-0.5" numberOfLines={1}>{formatShortSource(telemetry.provenance)} Live</Text>
               </View>
             </View>
           </View>
 
-          {/* Google Fit Live Telemetry Card */}
+          {/* Wearable Live Telemetry Card */}
           <View className="bg-white rounded-3xl p-5 border border-slate-200 shadow-sm space-y-3.5">
-            <View className="flex-row items-center justify-between pb-2.5 border-b border-slate-100">
-              <View className="flex-row items-center gap-2">
-                <View className="w-8 h-8 rounded-xl bg-emerald-50 items-center justify-center">
+            <View className="flex-row items-center justify-between flex-wrap gap-2 pb-2.5 border-b border-slate-100">
+              <View className="flex-row items-center gap-2 flex-1 min-w-[160px]">
+                <View className="w-8 h-8 rounded-xl bg-emerald-50 items-center justify-center shrink-0">
                   <Activity size={16} color="#059669" />
                 </View>
-                <View>
-                  <Text className="text-xs font-black text-slate-900">Google Fit Live Stream</Text>
-                  <Text className="text-[10px] text-slate-400 font-medium">
-                    Provenance: <Text className="font-bold text-slate-700">{telemetry.provenance}</Text>
+                <View className="flex-1 min-w-0">
+                  <Text className="text-xs font-black text-slate-900" numberOfLines={1}>
+                    {formatShortSource(telemetry.provenance)} Live Stream
+                  </Text>
+                  <Text className="text-[10px] text-slate-400 font-medium" numberOfLines={1}>
+                    Provenance: <Text className="font-bold text-slate-700">{formatProviderName(telemetry.provenance)}</Text>
                   </Text>
                 </View>
               </View>
-              <View className="bg-emerald-50 border border-emerald-300 rounded-full px-2.5 py-0.5 flex-row items-center gap-1.5 shadow-xs">
+              <View className="bg-emerald-50 border border-emerald-300 rounded-full px-2.5 py-0.5 flex-row items-center gap-1.5 shadow-xs shrink-0 ml-auto">
                 <View className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 <Text className="text-[9px] font-bold text-emerald-700 uppercase">LIVE STREAMING</Text>
               </View>
             </View>
 
             {/* 3 Live Wearable Metrics */}
-            <View className="flex-row gap-2.5">
-              <View className="flex-1 bg-slate-50 border border-slate-100 rounded-2xl p-2.5 items-center">
+            <View className="flex-row gap-2 sm:gap-2.5">
+              <View className="flex-1 bg-slate-50 border border-slate-100 rounded-2xl p-2.5 items-center min-w-0">
                 <View className="flex-row items-center gap-1 mb-0.5">
                   <Flame size={12} color="#f97316" />
                   <Text className="text-[9px] font-bold text-slate-500 uppercase">Steps</Text>
                 </View>
-                <Text className="text-base font-black text-slate-900">
+                <Text className="text-sm sm:text-base font-black text-slate-900" numberOfLines={1}>
                   {displaySteps.toLocaleString()}
                 </Text>
-                <Text className="text-[9px] text-emerald-600 font-bold mt-0.5">Live Moving</Text>
+                <Text className="text-[9px] text-emerald-600 font-bold mt-0.5 text-center" numberOfLines={1}>Live Moving</Text>
               </View>
 
-              <View className="flex-1 bg-slate-50 border border-slate-100 rounded-2xl p-2.5 items-center">
+              <View className="flex-1 bg-slate-50 border border-slate-100 rounded-2xl p-2.5 items-center min-w-0">
                 <View className="flex-row items-center gap-1 mb-0.5">
                   <Heart size={12} color="#e11d48" />
                   <Text className="text-[9px] font-bold text-slate-500 uppercase">Resting HR</Text>
                 </View>
-                <Text className="text-base font-black text-slate-900">
-                  {displayHR} bpm
+                <Text className="text-sm sm:text-base font-black text-slate-900" numberOfLines={1}>
+                  {displayHR > 0 ? `${displayHR} bpm` : '--'}
                 </Text>
-                <Text className="text-[9px] text-slate-500 font-medium mt-0.5">Real-time</Text>
+                <Text className="text-[9px] text-slate-500 font-medium mt-0.5 text-center" numberOfLines={1}>Real-time</Text>
               </View>
 
-              <View className="flex-1 bg-slate-50 border border-slate-100 rounded-2xl p-2.5 items-center">
+              <View className="flex-1 bg-slate-50 border border-slate-100 rounded-2xl p-2.5 items-center min-w-0">
                 <View className="flex-row items-center gap-1 mb-0.5">
                   <Moon size={12} color="#6366f1" />
                   <Text className="text-[9px] font-bold text-slate-500 uppercase">Rest Sleep</Text>
                 </View>
-                <Text className="text-base font-black text-slate-900">
-                  {Math.floor(displaySleepMinutes / 60)}h {displaySleepMinutes % 60}m
+                <Text className="text-sm sm:text-base font-black text-slate-900" numberOfLines={1}>
+                  {displaySleepMinutes > 0 ? `${Math.floor(displaySleepMinutes / 60)}h ${displaySleepMinutes % 60}m` : '--'}
                 </Text>
-                <Text className="text-[9px] text-indigo-600 font-bold mt-0.5">
-                  {displaySleepMinutes} mins
+                <Text className="text-[9px] text-indigo-600 font-bold mt-0.5 text-center" numberOfLines={1}>
+                  {displaySleepMinutes > 0 ? `${displaySleepMinutes} mins` : 'No data'}
                 </Text>
               </View>
             </View>
@@ -512,7 +529,7 @@ export default function ParentClinicalOverviewRoute() {
               >
                 <Watch size={16} color="#007aff" />
                 <Text className="text-xs font-black text-slate-900">Wearables & Sync</Text>
-                <Text className="text-[9px] text-slate-400 font-medium">Google Fit Live Stream</Text>
+                <Text className="text-[9px] text-slate-400 font-medium">{formatShortSource(telemetry.provenance)} Live Stream</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
