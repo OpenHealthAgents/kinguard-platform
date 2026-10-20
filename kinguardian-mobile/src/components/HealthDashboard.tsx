@@ -1,5 +1,5 @@
 import React, { useContext, useState, useEffect, useCallback, useMemo } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, TextInput } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { AppContext } from '../store/AppContext';
 import {
@@ -24,7 +24,6 @@ import {
   ShieldCheck,
   Stethoscope,
   User,
-  Search,
   X,
   Plus,
   Users
@@ -329,35 +328,6 @@ export const HealthDashboard: React.FC<HealthDashboardProps> = ({
     has_recent_events: recentCheckIns.length > 0
   };
 
-  // Search state (TEST SEC-001)
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<any[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const [searchExecuted, setSearchExecuted] = useState(false);
-
-  const handleExecuteSearch = async (queryToSearch: string) => {
-    const q = queryToSearch.trim();
-    if (!q) return;
-    setIsSearching(true);
-    setSearchExecuted(true);
-    try {
-      const targetId = primaryPerson?.backendSubjectId || (primaryPerson?.id && primaryPerson.id !== 'dad' && primaryPerson.id !== 'mom' ? primaryPerson.id : undefined);
-      const data = await realDataService.search(q, targetId);
-      setSearchResults(data?.results || []);
-    } catch (err) {
-      console.error('Search failed:', err);
-      setSearchResults([]);
-    } finally {
-      setIsSearching(false);
-    }
-  };
-
-  const handleClearSearch = () => {
-    setSearchQuery('');
-    setSearchResults([]);
-    setSearchExecuted(false);
-  };
-
   // Live Wearable Telemetry State from PostgreSQL / SQLite Database
   const [wearableSummary, setWearableSummary] = useState<WearableHealthSummary | null>(null);
   const isWearableConnected = Boolean(
@@ -588,175 +558,6 @@ export const HealthDashboard: React.FC<HealthDashboardProps> = ({
             <ShieldCheck size={13} color="#ef4444" />
             <Text className="text-[11px] font-bold text-red-700">Emergency Summary</Text>
           </TouchableOpacity>
-        </View>
-
-        {/* Global Search Bar (TEST SEC-001) */}
-        <View className="space-y-2">
-          <View className="flex-row items-center bg-white rounded-2xl px-3.5 py-0.5 border border-slate-200 shadow-xs">
-            <Search size={15} color="#007aff" />
-            <TextInput
-              testID="coordinator-search-input"
-              accessibilityLabel={`Search ${primaryName} care information, vitals and records`}
-              value={searchQuery}
-              onChangeText={(txt) => {
-                setSearchQuery(txt);
-                if (!txt) {
-                  setSearchResults([]);
-                  setSearchExecuted(false);
-                }
-              }}
-              onSubmitEditing={() => handleExecuteSearch(searchQuery)}
-              placeholder="Search family care information"
-              placeholderTextColor="#94a3b8"
-              className="flex-1 px-3 py-2 text-xs text-slate-800 font-semibold"
-              returnKeyType="search"
-            />
-            {searchQuery ? (
-              <TouchableOpacity testID="coordinator-search-clear" onPress={handleClearSearch} className="p-1 mr-1">
-                <X size={14} color="#94a3b8" />
-              </TouchableOpacity>
-            ) : null}
-            <TouchableOpacity
-              testID="coordinator-search-button"
-              accessibilityLabel="Execute search"
-              onPress={() => handleExecuteSearch(searchQuery)}
-              className="bg-[#007aff] px-3 py-1.5 rounded-xl active:opacity-90"
-            >
-              <Text className="text-white text-[11px] font-bold">
-                {isSearching ? '...' : 'Search'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Search Quick Suggestions */}
-          {!searchExecuted && (
-            <View testID="coordinator-search-suggestions" className="flex-row items-center gap-1.5 flex-wrap pt-0.5">
-              <Text className="text-[10px] text-slate-400 font-semibold">Try:</Text>
-              {['Vitals & check-ins', 'Medications', 'Upcoming appointments', 'Health records'].map((suggestion, sIdx) => (
-                <TouchableOpacity
-                  key={sIdx}
-                  testID={`coordinator-search-suggestion-${sIdx}`}
-                  onPress={() => {
-                    setSearchQuery(suggestion);
-                    handleExecuteSearch(suggestion);
-                  }}
-                  className="bg-slate-100 px-2 py-0.5 rounded-lg border border-slate-200/60 active:bg-blue-50 active:border-blue-200"
-                >
-                  <Text className="text-[10px] text-slate-600 font-medium">{suggestion}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
-
-          {/* Search Results Display (TEST SEC-001) */}
-          {searchExecuted && (
-            <View testID="coordinator-search-results" className="bg-white rounded-2xl p-4 border border-blue-200 shadow-md space-y-3 mt-1">
-              <View className="flex-row items-center justify-between border-b border-slate-100 pb-2">
-                <View className="flex-row items-center gap-1.5">
-                  <Search size={14} color="#007aff" />
-                  <Text testID="coordinator-search-results-count" className="text-xs font-bold text-slate-900">
-                    Search Results ({searchResults.length})
-                  </Text>
-                </View>
-                <TouchableOpacity testID="coordinator-search-close" onPress={handleClearSearch} className="p-1">
-                  <Text className="text-[10px] text-blue-600 font-bold">Close Results</Text>
-                </TouchableOpacity>
-              </View>
-
-              {searchResults.length === 0 ? (
-                <View testID="coordinator-search-empty" className="py-4 items-center">
-                  <Text className="text-xs text-slate-500 font-medium">
-                    No matching records found for "{searchQuery}"
-                  </Text>
-                </View>
-              ) : (
-                <View style={{ gap: 12 }}>
-                  {searchResults.map((item, rIdx) => {
-                    const isMed = item.category === 'medication';
-                    const isTask = item.category === 'care_task';
-                    const isCheckin = item.category === 'checkin';
-                    const isDoc = item.category === 'document';
-
-                    return (
-                      <View
-                        key={item.id || rIdx}
-                        testID={`coordinator-search-result-${item.id || rIdx}`}
-                        className="bg-slate-50 p-3 rounded-xl border border-slate-100 flex-row items-center justify-between"
-                      >
-                        <View className="flex-row items-center gap-3 flex-1 pr-2">
-                          <View
-                            className={`w-8 h-8 rounded-xl items-center justify-center shrink-0 ${
-                              isMed
-                                ? 'bg-amber-100'
-                                : isTask
-                                ? 'bg-blue-100'
-                                : isCheckin
-                                ? 'bg-emerald-100'
-                                : 'bg-purple-100'
-                            }`}
-                          >
-                            {isMed ? (
-                              <Pill size={15} color="#d97706" />
-                            ) : isTask ? (
-                              <Calendar size={15} color="#2563eb" />
-                            ) : isCheckin ? (
-                              <Activity size={15} color="#059669" />
-                            ) : (
-                              <FileText size={15} color="#7c3aed" />
-                            )}
-                          </View>
-                          <View className="flex-1">
-                            <View className="flex-row items-center gap-1.5">
-                              <Text testID={`coordinator-search-result-${item.id || rIdx}-title`} className="text-xs font-bold text-slate-900 truncate">
-                                {item.title}
-                              </Text>
-                              <View testID={`coordinator-search-result-${item.id || rIdx}-category`} className="bg-slate-200/80 px-1.5 py-0.5 rounded">
-                                <Text className="text-[8px] font-bold text-slate-700 uppercase">
-                                  {item.category}
-                                </Text>
-                              </View>
-                            </View>
-                            <Text testID={`coordinator-search-result-${item.id || rIdx}-subtitle`} className="text-[10px] text-slate-500 font-medium mt-0.5">
-                              {item.subtitle}
-                            </Text>
-                          </View>
-                        </View>
-
-                        <TouchableOpacity
-                          testID={`coordinator-search-result-${item.id || rIdx}-open`}
-                          onPress={() => {
-                            if (isMed) {
-                              router.push(`/(coordinator)/parent/${primaryPerson?.id || 'dad'}/medications` as any);
-                            } else if (isDoc) {
-                              router.push('/(coordinator)/records' as any);
-                            } else if (isCheckin) {
-                              router.push('/(coordinator)/records' as any);
-                            } else {
-                              router.push('/(coordinator)/care' as any);
-                            }
-                          }}
-                          className="bg-white px-2.5 py-1.5 rounded-lg border border-slate-200 shadow-xs flex-row items-center gap-1 active:bg-blue-50"
-                        >
-                          <Text className="text-[10px] font-bold text-blue-600">Open</Text>
-                          <ChevronRight size={10} color="#2563eb" />
-                        </TouchableOpacity>
-                      </View>
-                    );
-                  })}
-                </View>
-              )}
-
-              <TouchableOpacity
-                testID="coordinator-search-view-all"
-                onPress={() => router.push('/(coordinator)/records' as any)}
-                className="w-full bg-blue-50 py-2.5 rounded-xl items-center justify-center border border-blue-200 flex-row gap-1 active:bg-blue-100"
-              >
-                <Text className="text-xs font-bold text-blue-700">
-                  View Full Health Timeline & Vault Records &rarr;
-                </Text>
-              </TouchableOpacity>
-            </View>
-          )}
         </View>
 
         {/* Today's Attention Alert Section */}
