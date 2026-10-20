@@ -9,7 +9,6 @@ import {
   ChevronRight,
   Calendar,
   FileText,
-  Sparkles,
   Flame,
   Heart,
   Moon,
@@ -750,45 +749,6 @@ export const ParentModeDashboard: React.FC<ParentModeDashboardProps> = ({
             </View>
           </View>
         )}
-
-        {/* Clinical Voice & AI */}
-        <View className="space-y-2">
-          <View className="flex-row justify-between items-center px-1">
-            <Text className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-              Clinical Voice & AI
-            </Text>
-            <View className="flex-row items-center gap-1 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-              <Sparkles size={10} color="#059669" />
-              <Text className="text-[9px] font-black text-emerald-800">AI Assistant</Text>
-            </View>
-          </View>
-
-          <TouchableOpacity
-            testID="parent-home-ask-kinGuardian"
-            accessible={true}
-            accessibilityRole="button"
-            accessibilityLabel="Ask KinGuardian AI Assistant. Voice and text support."
-            accessibilityHint="Opens voice or text chat with KinGuardian"
-            onPress={() => router.push('/(parent)/ask')}
-            activeOpacity={0.9}
-            className="bg-gradient-to-r from-emerald-800 to-teal-900 rounded-3xl p-4.5 shadow-lg space-y-2.5 active:scale-98"
-          >
-            <View className="flex-row items-center justify-between">
-              <View className="flex-row items-center gap-3">
-                <View className="w-10 h-10 rounded-2xl bg-white/10 items-center justify-center border border-white/20">
-                  <Sparkles size={20} color="#6ee7b7" />
-                </View>
-                <View>
-                  <Text className="text-base font-black text-white">Ask KinGuardian</Text>
-                  <Text className="text-xs text-emerald-200 font-medium">
-                    Speak or ask: "What medicine do I take tonight?"
-                  </Text>
-                </View>
-              </View>
-              <ChevronRight size={18} color="#a7f3d0" />
-            </View>
-          </TouchableOpacity>
-        </View>
 
         {/* Section: Today's Activity & Rest (Continuous Auto-Sync) */}
         <View className="space-y-2">
