@@ -10,7 +10,6 @@ import {
   Sparkles,
   Clock,
   AlertTriangle,
-  MapPin,
   ChevronRight,
   CheckCircle2,
   Bell,
@@ -568,36 +567,23 @@ export const HealthDashboard: React.FC<HealthDashboardProps> = ({
 
       {/* Main Full-Screen ScrollView */}
       <ScrollView className="flex-1 px-5 pt-4 space-y-5" contentContainerStyle={{ paddingBottom: 120 }}>
-        {/* Hero Greeting */}
-        <View className="space-y-1">
-          <Text className="text-2xl font-black text-slate-900 tracking-tight">
-            Good morning, {displayCoordinatorName}
-          </Text>
-          <Text className="text-xs text-slate-500 font-medium">
-            Here's what's happening with your family today
-          </Text>
-        </View>
-
-        {/* Location Translation Pills & Emergency Summary Link */}
-        <View className="flex-row items-center gap-2 flex-wrap">
-          <View className="flex-row items-center gap-1.5 bg-gradient-to-r from-blue-50 to-blue-100 px-3 py-1.5 rounded-2xl border border-blue-200 shadow-2xs">
-            <MapPin size={11} color="#007aff" />
-            <Text testID="coordinator-location-pill" className="text-[11px] font-semibold text-blue-700">
-              You — {context?.currentUser?.location || familyHomeData?.family?.coordinator_location || 'Coordinator'}
+        {/* Hero Greeting & Emergency Summary */}
+        <View className="flex-row items-start justify-between">
+          <View className="space-y-1 flex-1 mr-3">
+            <Text className="text-2xl font-black text-slate-900 tracking-tight">
+              Good morning, {displayCoordinatorName}
             </Text>
-          </View>
-          <View className="flex-row items-center gap-1.5 bg-gradient-to-r from-emerald-50 to-emerald-100 px-3 py-1.5 rounded-2xl border border-emerald-200 shadow-2xs">
-            <MapPin size={11} color="#10b981" />
-            <Text className="text-[11px] font-semibold text-emerald-700">
-              {primaryName} — {primaryLocation}
+            <Text className="text-xs text-slate-500 font-medium">
+              Here's what's happening with your family today
             </Text>
           </View>
           <TouchableOpacity
             onPress={() => router.push(`/(coordinator)/parent/${primaryPerson?.id || 'dad'}/summary` as any)}
-            className="flex-row items-center gap-1.5 bg-red-50 px-3 py-1.5 rounded-2xl border border-red-200 shadow-2xs active:scale-95 ml-auto"
+            className="flex-row items-center gap-1.5 bg-red-50 hover:bg-red-100 px-3 py-2 rounded-2xl border border-red-200 shadow-2xs active:scale-95 shrink-0"
+            accessibilityLabel="Emergency Summary"
           >
-            <ShieldCheck size={11} color="#ef4444" />
-            <Text className="text-[10px] font-bold text-red-700">Emergency Summary</Text>
+            <ShieldCheck size={13} color="#ef4444" />
+            <Text className="text-[11px] font-bold text-red-700">Emergency Summary</Text>
           </TouchableOpacity>
         </View>
 
