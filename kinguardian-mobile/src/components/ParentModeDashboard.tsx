@@ -22,7 +22,7 @@ import {
 } from 'lucide-react-native';
 
 import { HealthRecordItem } from '../types';
-import { t } from '../i18n';
+import { t, getLanguage } from '../i18n';
 import { AppContext } from '../store/AppContext';
 import { googleFitService } from '../services/health/GoogleFitService';
 import { realDataService } from '../services/api-client/RealDataService';
@@ -61,6 +61,37 @@ export const ParentModeDashboard: React.FC<ParentModeDashboardProps> = ({
   const context = useContext(AppContext);
   const coordName = context?.coordinatorName || 'Coordinator';
   const parentName = context?.currentUser?.name || 'Parent';
+
+  const getParentGreeting = () => {
+    const hour = new Date().getHours();
+    const timeGreeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+    const lang = getLanguage();
+
+    const relation = (context?.currentUser?.relation || '').toLowerCase();
+    const name = context?.currentUser?.name || parentName;
+    const nameLower = name.toLowerCase();
+
+    const isMother = relation.includes('mother') || relation.includes('mom') || nameLower.includes('mother') || nameLower.includes('mom');
+    const isFather = relation.includes('father') || relation.includes('dad') || nameLower.includes('father') || nameLower.includes('dad');
+
+    if (lang === 'ta') {
+      if (isMother) return 'காலை வணக்கம், அம்மா ❤️';
+      if (isFather) return 'காலை வணக்கம், அப்பா ❤️';
+      return `காலை வணக்கம், ${name.split(' ')[0]} ❤️`;
+    }
+    if (lang === 'hi') {
+      if (isMother) return 'सुप्रभात, माताजी ❤️';
+      if (isFather) return 'सुप्रभात, पिताजी ❤️';
+      return `सुप्रभात, ${name.split(' ')[0]} ❤️`;
+    }
+
+    if (isMother) return `${timeGreeting}, Mom ❤️`;
+    if (isFather) return `${timeGreeting}, Dad ❤️`;
+    if (name && name !== 'Parent') {
+      return `${timeGreeting}, ${name.split(' ')[0]} ❤️`;
+    }
+    return `${timeGreeting}, Parent ❤️`;
+  };
 
   // Dynamic clinical and schedule state
   const [dynamicMeds, setDynamicMeds] = useState<any[]>(initialMedications || []);
@@ -402,7 +433,7 @@ export const ParentModeDashboard: React.FC<ParentModeDashboardProps> = ({
             </View>
           </View>
           <Text className="text-2xl font-bold text-slate-900 tracking-tight">
-            {t('parentHome.greeting')}
+            {getParentGreeting()}
           </Text>
           <Text className="text-sm text-slate-500 mt-1">
             Connected with {coordName}{parentSummary?.demographics?.location ? ` • ${parentSummary.demographics.location}` : ''}

@@ -1,5 +1,6 @@
 import { useContext, useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Modal, Switch, TextInput } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AppContext } from '../../src/store/AppContext';
 import { ParentBottomNavBar } from '../../src/components/Navigation';
 import { DeviceFrame } from '../../src/components/DeviceFrame';
@@ -58,8 +59,22 @@ export default function ParentProfileRoute() {
   const router = useRouter();
   const [showPrivacyModal, setShowPrivacyModal] = useState<boolean>(false);
   const [showLanguageModal, setShowLanguageModal] = useState<boolean>(false);
+  const [showRoleModal, setShowRoleModal] = useState<boolean>(false);
   const [selectedLang, setSelectedLang] = useState<string>(getLanguage());
   const coordName = context?.coordinatorName || 'Coordinator';
+
+  const handleUpdateRole = async (newRole: string) => {
+    await AsyncStorage.setItem('kinguardian_parent_relation', newRole);
+    if (context?.setCurrentUser && context.currentUser) {
+      context.setCurrentUser({
+        ...context.currentUser,
+        relation: newRole
+      });
+    }
+    setShowRoleModal(false);
+    const label = newRole === 'Mother' ? 'Mother (Mom)' : newRole === 'Father' ? 'Father (Dad)' : 'Personal Name';
+    context?.showToast(`Updated parent role to ${label}`);
+  };
 
   // FAM-003/004/005/006: consent scope, expiry, revoke state
   const [scopePreset, setScopePreset] = useState<ConsentScopePreset>('full');
@@ -191,6 +206,17 @@ export default function ParentProfileRoute() {
       bgColor: '#fff9e6'
     },
     {
+      title: 'Parent role & greeting title',
+      description: (context.currentUser?.relation === 'Mother' || context.currentUser?.relation === 'Mom')
+        ? 'Mother (Mom) · "Good morning, Mom"'
+        : (context.currentUser?.relation === 'Father' || context.currentUser?.relation === 'Dad')
+        ? 'Father (Dad) · "Good morning, Dad"'
+        : `Personal Name · "Good morning, ${context.currentUser?.name?.split(' ')[0] || 'Parent'}"`,
+      icon: User,
+      color: '#10b981',
+      bgColor: '#ecfdf5'
+    },
+    {
       title: 'My health devices & Google Fit',
       description: 'Google Fit / Health Connect · Live Streaming',
       icon: Watch,
@@ -262,6 +288,8 @@ export default function ParentProfileRoute() {
                   onPress={() => {
                     if (opt.title.includes('devices') || opt.title.includes('Google Fit')) {
                       router.push('/(parent)/devices');
+                    } else if (opt.title.includes('Parent role')) {
+                      setShowRoleModal(true);
                     } else if (opt.title.includes('Privacy')) {
                       setShowPrivacyModal(true);
                     } else if (opt.title.toLowerCase().includes('language')) {
@@ -518,6 +546,82 @@ export default function ParentProfileRoute() {
               >
                 <Text className="text-white text-xs font-bold">Close Permissions</Text>
               </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Parent Role & Greeting Title Modal */}
+      <Modal
+        visible={showRoleModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowRoleModal(false)}
+      >
+        <View className="flex-1 bg-black/50 justify-end">
+          <View className="bg-white rounded-t-[28px] max-h-[85%] p-6 pt-3 space-y-4 shadow-xl">
+            {/* Grabber Handle */}
+            <View className="w-10 h-1.5 bg-neutral-200 rounded-full self-center mb-1.5" />
+
+            <View className="flex-row justify-between items-center pb-2 border-b border-neutral-100">
+              <View className="flex-row items-center gap-2">
+                <User size={18} color="#10b981" />
+                <Text className="text-lg font-bold text-neutral-900 tracking-tight">
+                  Select Parent Title
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => setShowRoleModal(false)}
+                className="p-1.5 bg-neutral-100 rounded-full"
+              >
+                <X size={16} color="#8e8e93" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView className="space-y-3">
+              <Text className="text-xs text-neutral-400 font-semibold uppercase tracking-wider">
+                How should KinGuardian address you?
+              </Text>
+
+              {[
+                { role: 'Mother', label: 'Mother (Mom)', example: '“Good morning, Mom ❤️”' },
+                { role: 'Father', label: 'Father (Dad)', example: '“Good morning, Dad ❤️”' },
+                { role: 'Parent', label: 'Personal Name', example: `“Good morning, ${context?.currentUser?.name?.split(' ')[0] || 'Parent'} ❤️”` }
+              ].map((item) => {
+                const currentRel = context?.currentUser?.relation || 'Parent';
+                const isSelected =
+                  item.role === 'Mother'
+                    ? currentRel === 'Mother' || currentRel === 'Mom'
+                    : item.role === 'Father'
+                    ? currentRel === 'Father' || currentRel === 'Dad'
+                    : currentRel !== 'Mother' && currentRel !== 'Mom' && currentRel !== 'Father' && currentRel !== 'Dad';
+
+                return (
+                  <TouchableOpacity
+                    key={item.role}
+                    onPress={() => handleUpdateRole(item.role)}
+                    className={`p-4 rounded-2xl border flex-row items-center justify-between ${
+                      isSelected
+                        ? 'border-emerald-500 bg-emerald-50/60'
+                        : 'border-neutral-200 bg-neutral-50/50'
+                    }`}
+                  >
+                    <View>
+                      <Text className={`text-sm font-bold ${isSelected ? 'text-emerald-700' : 'text-neutral-800'}`}>
+                        {item.label}
+                      </Text>
+                      <Text className="text-xs text-neutral-500 font-medium mt-0.5">
+                        {item.example}
+                      </Text>
+                    </View>
+                    {isSelected && (
+                      <View className="w-6 h-6 rounded-full bg-emerald-600 items-center justify-center">
+                        <CheckCircle2 size={16} color="#ffffff" />
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
             </ScrollView>
           </View>
         </View>

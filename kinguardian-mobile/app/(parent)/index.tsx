@@ -1,5 +1,6 @@
 import { useContext, useState, useEffect } from 'react';
 import { View, Text } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AppContext } from '../../src/store/AppContext';
 import { ParentModeDashboard } from '../../src/components/ParentModeDashboard';
 import { ParentBottomNavBar } from '../../src/components/Navigation';
@@ -44,13 +45,16 @@ export default function ParentDashboardRoute() {
           if (profile) {
             // Update context with real user data
             if (context?.setCurrentUser) {
+              const savedParentRelation = await AsyncStorage.getItem('kinguardian_parent_relation');
               let rawName = profile.display_name || profile.email?.split('@')[0] || 'Parent';
               rawName = rawName.replace(/\bsharma\b/gi, '').trim();
               const nameLower = rawName.toLowerCase();
               const isAni = nameLower.includes('aniruddha');
               const isVan = nameLower.includes('vandana');
+              const isMomByName = nameLower.includes('mom') || nameLower.includes('mother');
+              const isDadByName = nameLower.includes('dad') || nameLower.includes('father');
               const cleanName = isAni ? 'Aniruddha' : (isVan ? 'Vandana' : rawName);
-              const parentRelation = isAni ? 'Father' : (isVan ? 'Mother' : 'Parent');
+              const parentRelation = savedParentRelation || (isAni || isDadByName ? 'Father' : (isVan || isMomByName ? 'Mother' : 'Parent'));
 
               context.setCurrentUser({
                 id: profile.id,

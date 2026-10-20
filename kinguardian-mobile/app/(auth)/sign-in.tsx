@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Alert, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { LogIn, UserPlus, Shield, ChevronRight, Mail, Lock, User, AlertCircle } from 'lucide-react-native';
 import { authService } from '../../src/services/auth/authService';
@@ -12,6 +13,7 @@ export default function SignInRoute() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState<'coordinator' | 'parent'>('coordinator');
+  const [parentType, setParentType] = useState<'Mother' | 'Father' | 'Parent'>('Mother');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -76,6 +78,9 @@ export default function SignInRoute() {
       const userRole = session.user.role;
 
       if (userRole === 'parent') {
+        if (isRegistering) {
+          await AsyncStorage.setItem('kinguardian_parent_relation', parentType);
+        }
         router.replace('/(parent)');
       } else {
         if (isRegistering) {
@@ -272,6 +277,69 @@ export default function SignInRoute() {
                   </Text>
                 </TouchableOpacity>
               </View>
+
+              {role === 'parent' && (
+                <View className="mt-3 bg-emerald-50/70 p-3 rounded-2xl border border-emerald-200/80">
+                  <Text className="text-[11px] font-bold text-emerald-800 mb-2 ml-0.5">
+                    Which parent are you?
+                  </Text>
+                  <View className="flex-row gap-2">
+                    <TouchableOpacity
+                      testID="auth-parent-mother"
+                      onPress={() => setParentType('Mother')}
+                      className={`flex-1 py-2 rounded-xl items-center border ${
+                        parentType === 'Mother'
+                          ? 'bg-emerald-600 border-emerald-600'
+                          : 'bg-white border-emerald-200'
+                      }`}
+                    >
+                      <Text
+                        className={`text-xs font-bold ${
+                          parentType === 'Mother' ? 'text-white' : 'text-emerald-800'
+                        }`}
+                      >
+                        Mother (Mom)
+                      </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      testID="auth-parent-father"
+                      onPress={() => setParentType('Father')}
+                      className={`flex-1 py-2 rounded-xl items-center border ${
+                        parentType === 'Father'
+                          ? 'bg-emerald-600 border-emerald-600'
+                          : 'bg-white border-emerald-200'
+                      }`}
+                    >
+                      <Text
+                        className={`text-xs font-bold ${
+                          parentType === 'Father' ? 'text-white' : 'text-emerald-800'
+                        }`}
+                      >
+                        Father (Dad)
+                      </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      testID="auth-parent-custom"
+                      onPress={() => setParentType('Parent')}
+                      className={`flex-1 py-2 rounded-xl items-center border ${
+                        parentType === 'Parent'
+                          ? 'bg-emerald-600 border-emerald-600'
+                          : 'bg-white border-emerald-200'
+                      }`}
+                    >
+                      <Text
+                        className={`text-xs font-bold ${
+                          parentType === 'Parent' ? 'text-white' : 'text-emerald-800'
+                        }`}
+                      >
+                        By Name
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
             </View>
           )}
 
