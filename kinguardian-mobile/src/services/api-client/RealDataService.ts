@@ -1738,7 +1738,7 @@ export interface WearableHealthSummary {
   sync_status: string;
   data_availability_issue: boolean;
   is_health_alert: boolean;
-  wearable_status: 'connected' | 'delayed' | 'unavailable';
+  wearable_status: 'connected' | 'delayed' | 'unavailable' | 'disconnected';
   stale_warning?: string | null;
   is_outage?: boolean;
   clinical_data_usable?: boolean;

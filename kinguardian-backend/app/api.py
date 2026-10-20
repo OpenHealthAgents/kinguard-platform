@@ -2444,9 +2444,12 @@ async def get_health_summary_route(
     target_sub = await resolve_target_care_subject(session, subject_id=subject_id or "aniruddha", actor=actor)
     target_subject_id = target_sub.id if target_sub else None
 
-    # Get latest wearable connection
+    # Get latest wearable connection that is actively connected
     conn = (await session.execute(
-        select(WearableConnection).where(WearableConnection.subject_id == target_subject_id).order_by(WearableConnection.last_sync_at.desc())
+        select(WearableConnection).where(
+            WearableConnection.subject_id == target_subject_id,
+            WearableConnection.connection_status.in_(["connected", "active"])
+        ).order_by(WearableConnection.last_sync_at.desc())
     )).scalars().first()
 
     now = datetime.now(UTC)

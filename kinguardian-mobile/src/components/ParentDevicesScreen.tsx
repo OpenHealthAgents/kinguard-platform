@@ -104,25 +104,10 @@ export const ParentDevicesScreen: React.FC<ParentDevicesScreenProps> = ({ onBack
         realDataService.getWearableHealthSummary(activeSubjectId)
       ]);
 
-      if (connsRes.status === 'fulfilled' && connsRes.value && connsRes.value.length > 0) {
+      if (connsRes.status === 'fulfilled' && Array.isArray(connsRes.value)) {
         setConnections(connsRes.value);
       } else {
-        // Fallback default for demo/parent mode
-        setConnections([
-          {
-            id: 'conn_google_fit_demo',
-            subject_id: activeSubjectId,
-            provider: 'health_connect',
-            connection_status: 'connected',
-            device_type: 'Google Fit / Health Connect',
-            device_id: 'google_health_connect',
-            source: 'health_connect',
-            last_sync_at: new Date().toISOString(),
-            sync_status: 'synced',
-            is_stale: false,
-            created_at: new Date().toISOString()
-          }
-        ]);
+        setConnections([]);
       }
 
       if (summaryRes.status === 'fulfilled' && summaryRes.value) {
@@ -132,15 +117,15 @@ export const ParentDevicesScreen: React.FC<ParentDevicesScreenProps> = ({ onBack
         setHealthSummary({
           subject_id: activeSubjectId,
           steps: liveTel.steps || 0,
-          heart_rate: liveTel.heartRate || 72,
-          sleep_minutes: liveTel.sleepMinutes || 460,
+          heart_rate: liveTel.heartRate || 0,
+          sleep_minutes: liveTel.sleepMinutes || 0,
           hours_since_sync: 0,
           is_stale: false,
-          sync_status: 'synced',
-          data_availability_issue: false,
+          sync_status: liveTel.isConnected ? 'synced' : 'not_connected',
+          data_availability_issue: !liveTel.isConnected,
           is_health_alert: false,
-          wearable_status: 'connected',
-          source: 'health_connect'
+          wearable_status: liveTel.isConnected ? 'connected' : 'disconnected',
+          source: liveTel.isConnected ? 'health_connect' : 'none'
         });
       }
     } catch (e) {
@@ -158,16 +143,16 @@ export const ParentDevicesScreen: React.FC<ParentDevicesScreenProps> = ({ onBack
       setHealthSummary((prev) => ({
         ...(prev || {}),
         subject_id: activeSubjectId,
-        steps: data.steps > 0 ? data.steps : (prev?.steps || 0),
-        heart_rate: data.heartRate > 0 ? data.heartRate : (prev?.heart_rate || 72),
-        sleep_minutes: data.sleepMinutes > 0 ? data.sleepMinutes : (prev?.sleep_minutes || 465),
+        steps: data.isConnected ? (data.steps > 0 ? data.steps : (prev?.steps || 0)) : 0,
+        heart_rate: data.isConnected ? (data.heartRate > 0 ? data.heartRate : (prev?.heart_rate || 72)) : 0,
+        sleep_minutes: data.isConnected ? (data.sleepMinutes > 0 ? data.sleepMinutes : (prev?.sleep_minutes || 465)) : 0,
         hours_since_sync: 0,
         is_stale: false,
-        sync_status: 'synced',
-        data_availability_issue: false,
+        sync_status: data.isConnected ? 'synced' : 'not_connected',
+        data_availability_issue: !data.isConnected,
         is_health_alert: false,
-        wearable_status: 'connected',
-        source: 'health_connect',
+        wearable_status: data.isConnected ? 'connected' : 'disconnected',
+        source: data.isConnected ? 'health_connect' : 'none',
         last_sync_at: new Date().toISOString()
       }));
     });

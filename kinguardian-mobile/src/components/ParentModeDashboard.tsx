@@ -117,7 +117,7 @@ export const ParentModeDashboard: React.FC<ParentModeDashboardProps> = ({
     lastUpdated: string;
     steps?: number;
   }>({
-    name: 'Health Connect',
+    name: 'No device connected',
     status: 'Not connected',
     lastUpdated: 'Waiting for device connection',
     steps: 0
@@ -163,49 +163,77 @@ export const ParentModeDashboard: React.FC<ParentModeDashboardProps> = ({
             setParentSummary(parentSumRes.value);
           }
 
-          if (conns.status === 'fulfilled' && conns.value && conns.value.length > 0) {
-            const activeConn = conns.value.find((c: any) => c.connection_status === 'connected' || c.connection_status === 'active') || conns.value[0];
-            if (activeConn) {
-              const provName = activeConn.provider === 'garmin'
-                ? 'Garmin Watch'
-                : activeConn.provider === 'fitbit'
-                ? 'Fitbit Tracker'
-                : (activeConn.provider === 'apple_watch' || activeConn.provider === 'apple_health')
-                ? 'Apple Watch'
-                : 'Google Fit / Health Connect';
-              setActiveDevice({
-                name: provName,
-                status: 'Connected',
-                lastUpdated: 'Live synced',
-                steps: 0
-              });
-            }
+          const activeConn = conns.status === 'fulfilled' && Array.isArray(conns.value)
+            ? conns.value.find((c: any) => c.connection_status === 'connected' || c.connection_status === 'active')
+            : null;
+
+          if (activeConn) {
+            const provName = activeConn.provider === 'garmin'
+              ? 'Garmin Watch'
+              : activeConn.provider === 'fitbit'
+              ? 'Fitbit Tracker'
+              : (activeConn.provider === 'apple_watch' || activeConn.provider === 'apple_health')
+              ? 'Apple Watch'
+              : 'Google Fit / Health Connect';
+            setActiveDevice({
+              name: provName,
+              status: 'Connected',
+              lastUpdated: 'Live synced',
+              steps: 0
+            });
+          } else {
+            setActiveDevice({
+              name: 'No device connected',
+              status: 'Not connected',
+              lastUpdated: 'No active device',
+              steps: 0
+            });
           }
 
           if (summary.status === 'fulfilled' && summary.value) {
             const sum = summary.value;
-            setTelemetry((prev) => ({
-              ...prev,
-              steps: sum.steps || prev.steps,
-              heartRate: sum.heart_rate || prev.heartRate || 72,
-              sleepMinutes: sum.sleep_minutes || prev.sleepMinutes || 465,
-              isConnected: true,
-              isStreaming: true,
-              provenance: sum.source === 'garmin'
-                ? 'Garmin Watch'
-                : sum.source === 'fitbit'
-                ? 'Fitbit Tracker'
-                : (sum.source === 'apple_watch' || sum.source === 'apple_health')
-                ? 'Apple Watch'
-                : 'Google Fit / Health Connect'
-            }));
-            setActiveDevice((prev) => ({
-              ...prev,
-              status: 'Connected',
-              lastUpdated: 'Live synced',
-              steps: sum.steps || prev.steps
-            }));
-            setLastAutoSyncTime('Last synced just now');
+            const isConn = sum.wearable_status === 'connected' && !sum.data_availability_issue && Boolean(activeConn);
+            if (isConn) {
+              setTelemetry((prev) => ({
+                ...prev,
+                steps: sum.steps || prev.steps || 0,
+                heartRate: sum.heart_rate || prev.heartRate || 72,
+                sleepMinutes: sum.sleep_minutes || prev.sleepMinutes || 465,
+                isConnected: true,
+                isStreaming: true,
+                provenance: sum.source === 'garmin'
+                  ? 'Garmin Watch'
+                  : sum.source === 'fitbit'
+                  ? 'Fitbit Tracker'
+                  : (sum.source === 'apple_watch' || sum.source === 'apple_health')
+                  ? 'Apple Watch'
+                  : 'Google Fit / Health Connect'
+              }));
+              setActiveDevice((prev) => ({
+                ...prev,
+                status: 'Connected',
+                lastUpdated: 'Live synced',
+                steps: sum.steps || prev.steps
+              }));
+              setLastAutoSyncTime('Last synced just now');
+            } else {
+              setTelemetry((prev) => ({
+                ...prev,
+                steps: 0,
+                heartRate: 0,
+                sleepMinutes: 0,
+                isConnected: false,
+                isStreaming: false,
+                provenance: 'No device connected'
+              }));
+              setActiveDevice({
+                name: 'No device connected',
+                status: 'Not connected',
+                lastUpdated: 'No active device',
+                steps: 0
+              });
+              setLastAutoSyncTime('No device connected');
+            }
           }
         }
       } catch (e) {
@@ -217,23 +245,42 @@ export const ParentModeDashboard: React.FC<ParentModeDashboardProps> = ({
 
     const unsubscribe = googleFitService.subscribe((data) => {
       if (isMounted) {
-        setTelemetry((prev) => ({
-          ...data,
-          steps: data.steps > 0 ? data.steps : prev.steps,
-          heartRate: data.heartRate > 0 ? data.heartRate : prev.heartRate,
-          sleepMinutes: data.sleepMinutes > 0 ? data.sleepMinutes : prev.sleepMinutes
-        }));
-        setActiveDevice((prev) => ({
-          name: data.provenance.includes('Health Connect')
-            ? 'Google Fit / Health Connect'
-            : (data.provenance && data.provenance !== 'No health data available')
-            ? data.provenance
-            : prev.name,
-          status: 'Connected',
-          lastUpdated: `Checked ${new Date().toLocaleTimeString()}`,
-          steps: data.steps > 0 ? data.steps : prev.steps
-        }));
-        setLastAutoSyncTime(`Last checked ${new Date().toLocaleTimeString()}`);
+        if (data.isConnected) {
+          setTelemetry((prev) => ({
+            ...data,
+            steps: data.steps > 0 ? data.steps : prev.steps,
+            heartRate: data.heartRate > 0 ? data.heartRate : prev.heartRate,
+            sleepMinutes: data.sleepMinutes > 0 ? data.sleepMinutes : prev.sleepMinutes
+          }));
+          setActiveDevice((prev) => ({
+            name: data.provenance.includes('Health Connect')
+              ? 'Google Fit / Health Connect'
+              : (data.provenance && data.provenance !== 'No health data available')
+              ? data.provenance
+              : prev.name,
+            status: 'Connected',
+            lastUpdated: `Checked ${new Date().toLocaleTimeString()}`,
+            steps: data.steps > 0 ? data.steps : prev.steps
+          }));
+          setLastAutoSyncTime(`Last checked ${new Date().toLocaleTimeString()}`);
+        } else {
+          setTelemetry((prev) => ({
+            ...prev,
+            steps: 0,
+            heartRate: 0,
+            sleepMinutes: 0,
+            isConnected: false,
+            isStreaming: false,
+            provenance: 'No device connected'
+          }));
+          setActiveDevice({
+            name: 'No device connected',
+            status: 'Not connected',
+            lastUpdated: 'No active device',
+            steps: 0
+          });
+          setLastAutoSyncTime('No device connected');
+        }
       }
     });
 
@@ -260,6 +307,10 @@ export const ParentModeDashboard: React.FC<ParentModeDashboardProps> = ({
   }, [targetSubjectId, context?.currentPersonId]);
 
   const handleForceAutoSync = async () => {
+    if (!telemetry.isConnected) {
+      router.push('/(parent)/devices');
+      return;
+    }
     setIsSyncingFit(true);
     const resolvedId = targetSubjectId || context?.currentPersonId;
     try {
@@ -278,9 +329,11 @@ export const ParentModeDashboard: React.FC<ParentModeDashboardProps> = ({
         } catch {}
       }
 
-      await realDataService.syncHealthConnectTelemetry(resolvedId, {
-        steps: stepsToSync || 0
-      });
+      if (stepsToSync > 0) {
+        await realDataService.syncHealthConnectTelemetry(resolvedId, {
+          steps: stepsToSync || 0
+        });
+      }
 
       setTelemetry((prev) => ({
         ...prev,
@@ -301,7 +354,7 @@ export const ParentModeDashboard: React.FC<ParentModeDashboardProps> = ({
       );
     } catch (e) {
       console.warn('Auto-sync error:', e);
-      Alert.alert('Wearable Synced', 'Steps are synced with KinGuardian.');
+      Alert.alert('Wearable Sync', 'Could not sync wearable data right now.');
     } finally {
       setIsSyncingFit(false);
     }
@@ -764,17 +817,20 @@ export const ParentModeDashboard: React.FC<ParentModeDashboardProps> = ({
           <View className="bg-white rounded-3xl p-5 border border-slate-200 shadow-sm space-y-3.5">
             <View className="flex-row items-center justify-between pb-2.5 border-b border-slate-100">
               <View className="flex-row items-center gap-2">
-                <View className="w-8 h-8 rounded-xl bg-emerald-50 items-center justify-center">
-                  <Activity size={16} color="#059669" />
+                <View className={`w-8 h-8 rounded-xl ${telemetry.isConnected ? 'bg-emerald-50' : 'bg-slate-100'} items-center justify-center`}>
+                  <Activity size={16} color={telemetry.isConnected ? '#059669' : '#64748b'} />
                 </View>
                 <View>
                   <Text className="text-xs font-black text-slate-900">Today's Activity & Rest</Text>
                   <Text className="text-[10px] text-slate-400 font-medium">
-                    Updates while app is open • <Text className="font-bold text-emerald-700">{telemetry.provenance}</Text>
+                    {telemetry.isConnected ? 'Updates while app is open • ' : ''}
+                    <Text className={`font-bold ${telemetry.isConnected ? 'text-emerald-700' : 'text-slate-500'}`}>
+                      {telemetry.isConnected ? telemetry.provenance : 'No device connected'}
+                    </Text>
                   </Text>
                 </View>
               </View>
-              <View className={`${telemetry.isConnected ? 'bg-emerald-50 border-emerald-300' : 'bg-slate-50 border-slate-200'} border rounded-full px-2.5 py-0.5 flex-row items-center gap-1.5 shadow-xs`}>
+              <View className={`${telemetry.isConnected ? 'bg-emerald-50 border-emerald-300' : 'bg-slate-100 border-slate-200'} border rounded-full px-2.5 py-0.5 flex-row items-center gap-1.5 shadow-xs`}>
                 <View className={`w-1.5 h-1.5 rounded-full ${telemetry.isConnected ? 'bg-emerald-500' : 'bg-slate-400'}`} />
                 <Text className={`text-[9px] font-bold uppercase ${telemetry.isConnected ? 'text-emerald-700' : 'text-slate-500'}`}>
                   {telemetry.isConnected ? 'SYNC ACTIVE' : 'NOT CONNECTED'}
@@ -794,12 +850,12 @@ export const ParentModeDashboard: React.FC<ParentModeDashboardProps> = ({
                       Today's Steps
                     </Text>
                     <Text className="text-2xl font-black text-slate-900 mt-0.5">
-                      {telemetry.steps.toLocaleString()}
+                      {telemetry.isConnected && telemetry.steps > 0 ? telemetry.steps.toLocaleString() : '--'}
                     </Text>
                     <View className="flex-row items-center gap-1 mt-0.5">
                       <View className={`w-2 h-2 rounded-full ${telemetry.isConnected ? 'bg-emerald-500' : 'bg-slate-400'}`} />
                       <Text className={`text-[11px] font-bold ${telemetry.isConnected ? 'text-emerald-600' : 'text-slate-500'}`}>
-                        {telemetry.isConnected ? 'Live • Auto Synced' : 'Ready to sync'}
+                        {telemetry.isConnected ? 'Live • Auto Synced' : 'Not Connected'}
                       </Text>
                       <Text className="text-[10px] text-slate-400 font-semibold">• {activeDevice.name}</Text>
                     </View>
@@ -809,15 +865,17 @@ export const ParentModeDashboard: React.FC<ParentModeDashboardProps> = ({
                 <TouchableOpacity
                   onPress={handleForceAutoSync}
                   disabled={isSyncingFit}
-                  className="bg-[#2a14b4] px-4 py-2.5 rounded-xl flex-row items-center gap-1.5 shadow-xs"
+                  className={`${telemetry.isConnected ? 'bg-[#2a14b4]' : 'bg-[#007aff]'} px-4 py-2.5 rounded-xl flex-row items-center gap-1.5 shadow-xs`}
                 >
                   {isSyncingFit ? (
                     <ActivityIndicator size="small" color="#ffffff" />
-                  ) : (
+                  ) : telemetry.isConnected ? (
                     <RefreshCw size={13} color="#ffffff" />
+                  ) : (
+                    <Watch size={13} color="#ffffff" />
                   )}
                   <Text className="text-xs font-bold text-white">
-                    {isSyncingFit ? 'Syncing...' : 'Sync Now'}
+                    {isSyncingFit ? 'Syncing...' : telemetry.isConnected ? 'Sync Now' : 'Connect'}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -831,7 +889,7 @@ export const ParentModeDashboard: React.FC<ParentModeDashboardProps> = ({
                   <View>
                     <Text className="text-[10px] font-bold text-slate-400 uppercase">Resting HR</Text>
                     <Text className="text-sm font-black text-slate-900">
-                      {telemetry.heartRate ? `${telemetry.heartRate} bpm` : '72 bpm'}
+                      {telemetry.isConnected && telemetry.heartRate > 0 ? `${telemetry.heartRate} bpm` : '--'}
                     </Text>
                   </View>
                 </View>
@@ -843,9 +901,9 @@ export const ParentModeDashboard: React.FC<ParentModeDashboardProps> = ({
                   <View>
                     <Text className="text-[10px] font-bold text-slate-400 uppercase">Rest Sleep</Text>
                     <Text className="text-sm font-black text-slate-900">
-                      {telemetry.sleepMinutes
+                      {telemetry.isConnected && telemetry.sleepMinutes > 0
                         ? `${Math.floor(telemetry.sleepMinutes / 60)}h ${telemetry.sleepMinutes % 60}m`
-                        : '7h 45m'}
+                        : '--'}
                     </Text>
                   </View>
                 </View>
@@ -861,8 +919,10 @@ export const ParentModeDashboard: React.FC<ParentModeDashboardProps> = ({
                     {lastAutoSyncTime}
                   </Text>
                 </View>
-                <View className="bg-emerald-100/80 px-2.5 py-0.5 rounded-lg flex-row items-center gap-1">
-                  <Text className="text-[10px] font-bold text-emerald-900">Connected</Text>
+                <View className={`${telemetry.isConnected ? 'bg-emerald-100/80' : 'bg-slate-200'} px-2.5 py-0.5 rounded-lg flex-row items-center gap-1`}>
+                  <Text className={`text-[10px] font-bold ${telemetry.isConnected ? 'text-emerald-900' : 'text-slate-600'}`}>
+                    {telemetry.isConnected ? 'Connected' : 'Not Connected'}
+                  </Text>
                 </View>
               </View>
 

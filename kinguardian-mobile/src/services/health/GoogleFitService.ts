@@ -78,14 +78,11 @@ class GoogleFitService {
         const past = await Pedometer.getStepCountAsync(startOfDay, new Date());
         if (past && typeof past.steps === 'number' && past.steps >= 0) {
           this.sensorBaseSteps = past.steps;
-          this.currentTelemetry.steps = past.steps;
-          this.currentTelemetry.provenance = 'Phone step counter';
-          this.currentTelemetry.source = 'phone_sensor';
-          this.currentTelemetry.isConnected = true;
-          this.currentTelemetry.isStreaming = this.isStreaming;
-          this.currentTelemetry.lastUpdated = new Date();
-          this.isConnected = true;
-          this.notifyListeners();
+          if (this.currentTelemetry.source === 'phone_sensor' && this.isConnected) {
+            this.currentTelemetry.steps = past.steps;
+            this.currentTelemetry.provenance = 'Phone step counter';
+            this.notifyListeners();
+          }
         }
       } catch (error) {
         console.warn('Could not read the phone step counter:', error);
@@ -99,16 +96,14 @@ class GoogleFitService {
             const totalSteps = this.sensorBaseSteps + this.sensorLiveSteps;
             // Never overwrite Health Connect or Google Fit real records with raw hardware pedometer
             if (this.currentTelemetry.source === 'health_connect' || this.currentTelemetry.source === 'google_fit') return;
-            // Never allow daily step count to decrease
-            if (totalSteps > (this.currentTelemetry.steps || 0)) {
-              this.currentTelemetry.steps = totalSteps;
-              this.currentTelemetry.provenance = this.currentTelemetry.provenance || 'Phone step counter';
-              this.currentTelemetry.source = 'phone_sensor';
-              this.currentTelemetry.isConnected = true;
-              this.currentTelemetry.isStreaming = this.isStreaming;
-              this.currentTelemetry.lastUpdated = new Date();
-              this.isConnected = true;
-              this.notifyListeners();
+            // Only update telemetry if phone sensor is the active connected source
+            if (this.currentTelemetry.source === 'phone_sensor' && this.isConnected) {
+              if (totalSteps > (this.currentTelemetry.steps || 0)) {
+                this.currentTelemetry.steps = totalSteps;
+                this.currentTelemetry.provenance = 'Phone step counter';
+                this.currentTelemetry.lastUpdated = new Date();
+                this.notifyListeners();
+              }
             }
           }
         });
@@ -172,11 +167,11 @@ class GoogleFitService {
     const targetId = subjectId || this.activeSubjectId;
     try {
       const summary = await realDataService.getWearableHealthSummary(targetId);
-      if (summary && (summary.steps > 0 || summary.heart_rate > 0 || (summary.sleep_minutes ?? 0) > 0 || summary.wearable_status === 'connected')) {
+      if (summary && summary.wearable_status === 'connected' && !summary.data_availability_issue) {
         this.currentTelemetry = {
-          steps: summary.steps || this.currentTelemetry.steps || 0,
-          heartRate: summary.heart_rate || this.currentTelemetry.heartRate || 72,
-          sleepMinutes: summary.sleep_minutes || this.currentTelemetry.sleepMinutes || 460,
+          steps: summary.steps || 0,
+          heartRate: summary.heart_rate || 72,
+          sleepMinutes: summary.sleep_minutes || 460,
           source: summary.source === 'health_connect' ? 'health_connect' : (summary.source as any || 'health_connect'),
           isConnected: true,
           lastUpdated: summary.last_sync_at ? new Date(summary.last_sync_at) : new Date(),
@@ -190,6 +185,19 @@ class GoogleFitService {
             : 'Google Fit / Health Connect'
         };
         this.isConnected = true;
+        this.notifyListeners();
+      } else {
+        this.currentTelemetry = {
+          steps: 0,
+          heartRate: 0,
+          sleepMinutes: 0,
+          source: 'none',
+          isConnected: false,
+          lastUpdated: new Date(),
+          isStreaming: false,
+          provenance: 'No device connected'
+        };
+        this.isConnected = false;
         this.notifyListeners();
       }
     } catch (e) {
@@ -256,6 +264,7 @@ class GoogleFitService {
     let heartRate = 0;
     let sleepMinutes = 0;
     let provenance = 'Google Fit / Health Connect';
+    let isBackendConnected = false;
 
     try {
       // 1. Google Fit shares Android health records through Health Connect.
@@ -270,39 +279,31 @@ class GoogleFitService {
         this.sensorLiveSteps = 0;
       }
 
-      // 2. If Health Connect records are 0 or not yet written, use backend persisted summary
-      if (steps === 0 && targetId) {
+      // 2. Check backend persisted summary for active connected wearable
+      if (targetId) {
         try {
           const summary = await realDataService.getWearableHealthSummary(targetId);
-          if (summary && summary.steps > 0) {
-            steps = summary.steps;
-            if (heartRate === 0 && summary.heart_rate > 0) heartRate = summary.heart_rate;
-            if (sleepMinutes === 0 && (summary.sleep_minutes ?? 0) > 0) sleepMinutes = summary.sleep_minutes!;
-            this.isConnected = true;
-            provenance = summary.source === 'garmin'
-              ? 'Garmin Watch'
-              : summary.source === 'fitbit'
-              ? 'Fitbit Tracker'
-              : summary.source === 'apple_watch'
-              ? 'Apple Watch'
-              : 'Google Fit / Health Connect';
-            this.sensorBaseSteps = summary.steps;
-            this.sensorLiveSteps = 0;
+          if (summary && summary.wearable_status === 'connected' && !summary.data_availability_issue) {
+            isBackendConnected = true;
+            if (steps === 0) {
+              steps = summary.steps || 0;
+              if (heartRate === 0 && summary.heart_rate > 0) heartRate = summary.heart_rate;
+              if (sleepMinutes === 0 && (summary.sleep_minutes ?? 0) > 0) sleepMinutes = summary.sleep_minutes!;
+              provenance = summary.source === 'garmin'
+                ? 'Garmin Watch'
+                : summary.source === 'fitbit'
+                ? 'Fitbit Tracker'
+                : summary.source === 'apple_watch'
+                ? 'Apple Watch'
+                : 'Google Fit / Health Connect';
+              this.sensorBaseSteps = summary.steps;
+              this.sensorLiveSteps = 0;
+            }
           }
         } catch {}
       }
 
-      // 3. Fallback to phone hardware pedometer only if no Health Connect or backend data
-      if (steps === 0) {
-        const liveStepSum = this.sensorBaseSteps + this.sensorLiveSteps;
-        if (liveStepSum > 0) {
-          steps = liveStepSum;
-          this.isConnected = true;
-          provenance = 'Phone Sensor · Live Steps';
-        }
-      }
-
-      const hasRealDevice = Boolean((realData?.isRealDeviceData && realData.steps > 0) || steps > 0 || (this.isConnected && this.currentTelemetry.isConnected));
+      const hasRealDevice = Boolean((realData?.isRealDeviceData && realData.steps > 0) || isBackendConnected);
 
       if (!hasRealDevice) {
         this.isConnected = false;
