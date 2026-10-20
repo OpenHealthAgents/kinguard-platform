@@ -1,5 +1,5 @@
 import React, { useContext, useState, useEffect, useCallback, useMemo } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Image, TextInput } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { AppContext } from '../store/AppContext';
 import {
@@ -32,6 +32,7 @@ import {
 } from 'lucide-react-native';
 import { HealthObservation, Person } from '../types';
 import { BrandLogo } from './ui/BrandLogo';
+import { Avatar } from './ui/Avatar';
 import { formatTimeForCoordinator, formatAppointmentTimeForCoordinator } from '../utils/timezone';
 import { realDataService, WearableHealthSummary } from '../services/api-client/RealDataService';
 import { googleFitService } from '../services/health/GoogleFitService';
@@ -1734,9 +1735,11 @@ export const HealthDashboard: React.FC<HealthDashboardProps> = ({
                   }`}
                 >
                   <View className="flex-row items-center gap-3.5 flex-1 min-w-0 mr-2">
-                    <Image
-                      source={{ uri: person.avatarUrl || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e' }}
-                      className="w-10 h-10 rounded-full shrink-0"
+                    <Avatar
+                      url={person.avatarUrl}
+                      name={cleanName}
+                      size="md"
+                      status="none"
                     />
                     <View className="space-y-0.5 flex-1 min-w-0">
                       <View className="flex-row items-center gap-1.5 flex-wrap">

@@ -59,8 +59,7 @@ export const DEMO_USERS: DemoUser[] = [
     location: 'London, UK',
     role: 'coordinator',
     relation: 'Coordinator',
-    avatarUrl:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuBjb58pDYmLPOvRb2C93qIwVmN3Z3qZ__ljM1T9ZSdVoVI9ovH8x3UkvVX2km1jcc-lJDB8XKVXGhKX0bZL8qDi2s9jgC8eOKs1TubpaykQObp6xTg11e7t9fDFBiO9G_knt_Iu91RQ6oYuQGrd_EwUBKvQprl0XXO1mrgZ2LripRVXQ9ztlZOQr21ScUbgnP5iva9lVWOYFTQ4E6180FpDmnFn1lhIDcG8awhKsT88RjoTEgkPxtmV'
+    avatarUrl: ''
   },
   {
     id: 'aniruddha',
@@ -69,8 +68,7 @@ export const DEMO_USERS: DemoUser[] = [
     location: 'Chennai, India',
     role: 'parent',
     relation: 'Father',
-    avatarUrl:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuALvS8om7n8gN1nN9dwPrBv-8lUIiusfbDJ_24xukhktin6SS4Fum03pBDjOv6QZq7FG1zrXkOAvuYXPyd3bNWRiExOfo8jITls7X2v_F_ae2gOUZWhU50WGJItnoRtI9opmF1QBZU6bzSEV02qftPpb92imjH5svG7X7JsNrBwsRS4KyeFQ20zUd6kbGNULu6DnWuaKXcPSFfVBT19aNcq-tWb94VlGR9d-nSgRSdV7ns615jW5_9B'
+    avatarUrl: ''
   },
   {
     id: 'vandana',
@@ -79,8 +77,7 @@ export const DEMO_USERS: DemoUser[] = [
     location: 'Chennai, India',
     role: 'parent',
     relation: 'Mother',
-    avatarUrl:
-      'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=256'
+    avatarUrl: ''
   }
 ];
 
@@ -344,8 +341,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       id: '2',
       sender: 'family',
       senderName: 'Caregiver',
-      senderAvatar:
-        'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=256',
+      senderAvatar: '',
       text: 'The local weather is very hot this week. I advised the parent to stay indoors and do light walking inside instead. I will check hydration and log a manual BP reading this evening.',
       timestamp: '3:22 PM IST (9:52 AM BST)'
     },
@@ -353,8 +349,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       id: '3',
       sender: 'family',
       senderName: 'Parent',
-      senderAvatar:
-        'https://lh3.googleusercontent.com/aida-public/AB6AXuALvS8om7n8gN1nN9dwPrBv-8lUIiusfbDJ_24xukhktin6SS4Fum03pBDjOv6QZq7FG1zrXkOAvuYXPyd3bNWRiExOfo8jITls7X2v_F_ae2gOUZWhU50WGJItnoRtI9opmF1QBZU6bzSEV02qftPpb92imjH5svG7X7JsNrBwsRS4KyeFQ20zUd6kbGNULu6DnWuaKXcPSFfVBT19aNcq-tWb94VlGR9d-nSgRSdV7ns615jW5_9B',
+      senderAvatar: '',
       text: 'I am feeling quite fine! Staying indoors and drinking enough water. Just took my morning medication.',
       timestamp: '3:30 PM IST (10:00 AM BST)'
     }
@@ -497,7 +492,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           timezone: u.timezone,
           role,
           relation: role === 'parent' ? 'Parent' : (role === 'caregiver' ? 'Caregiver' : 'Coordinator'),
-          avatarUrl: role === 'parent' ? (INITIAL_PEOPLE[0].avatarUrl || 'https://images.unsplash.com/photo-1544005313-94ddf0286df2') : (INITIAL_PEOPLE[2].avatarUrl || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330'),
+          avatarUrl: '',
           email: u.email
         });
         setAppMode(role === 'parent' ? 'parent' : 'coordinator');
@@ -582,7 +577,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           location: u.timezone || (role === 'parent' ? 'Chennai, India' : 'London, UK'),
           role,
           relation: role === 'parent' ? 'Parent' : (role === 'caregiver' ? 'Caregiver' : 'Coordinator'),
-          avatarUrl: role === 'parent' ? (INITIAL_PEOPLE[0].avatarUrl || 'https://images.unsplash.com/photo-1544005313-94ddf0286df2') : (INITIAL_PEOPLE[2].avatarUrl || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330'),
+          avatarUrl: '',
           email: u.email
         });
       }
@@ -599,9 +594,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               location: lm.location || `${lm.city || 'Chennai'}, ${lm.country || 'India'}`,
               role: isCaregiver ? 'caregiver' : (isParent ? 'parent' : 'coordinator'),
               relation: isCaregiver ? 'Caregiver' : (lm.relation || (isParent ? 'Parent' : 'Coordinator')),
-              avatarUrl: isCaregiver
-                ? 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=256'
-                : (lm.avatarUrl || INITIAL_PEOPLE[0].avatarUrl || 'https://images.unsplash.com/photo-1544005313-94ddf0286df2')
+              avatarUrl: lm.avatarUrl || ''
             });
           }
         });
@@ -625,7 +618,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 location: `${cm.city || 'Chennai'}, ${cm.country || 'India'}`,
                 role: 'caregiver',
                 relation: 'Caregiver',
-                avatarUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=256',
+                avatarUrl: cm.avatar_url || '',
                 email: cm.email
               });
             }
@@ -1551,8 +1544,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         id: `loop-msg-sur-${Date.now()}`,
         sender: 'family' as const,
         senderName: `${caregiverName} (Caregiver)`,
-        senderAvatar:
-          'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=256',
+        senderAvatar: '',
         text: `Hello ${coordinatorName}, I am with ${primaryName} now. Provided hydration and cooling. Checking vitals now.`,
         timestamp: 'Just now'
       };

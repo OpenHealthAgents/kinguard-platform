@@ -167,9 +167,6 @@ export default function CoordinatorDashboardRoute() {
               }
               
               if (context && context.setPeople && subjects && subjects.length > 0) {
-                const momAvatar = 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=256';
-                const dadAvatar = 'https://lh3.googleusercontent.com/aida-public/AB6AXuALvS8om7n8gN1nN9dwPrBv-8lUIiusfbDJ_24xukhktin6SS4Fum03pBDjOv6QZq7FG1zrXkOAvuYXPyd3bNWRiExOfo8jITls7X2v_F_ae2gOUZWhU50WGJItnoRtI9opmF1QBZU6bzSEV02qftPpb92imjH5svG7X7JsNrBwsRS4KyeFQ20zUd6kbGNULu6DnWuaKXcPSFfVBT19aNcq-tWb94VlGR9d-nSgRSdV7ns615jW5_9B';
-                
                 const mappedSubjects = subjects.map((cs: any) => {
                   let parsedRef: any = {};
                   try {
@@ -233,7 +230,7 @@ export default function CoordinatorDashboardRoute() {
                     role: 'parent',
                     relationship: relation,
                     relation: relation,
-                    avatarUrl: isMom ? momAvatar : dadAvatar,
+                    avatarUrl: matchingMember?.avatar_url || parsedRef.avatar_url || cs.avatar_url || '',
                     location: finalLocation,
                     age: parsedRef.age || (isMom ? 62 : 68),
                     city: finalCity,
@@ -302,7 +299,7 @@ export default function CoordinatorDashboardRoute() {
                         role: 'parent',
                         relationship: relation,
                         relation: relation,
-                        avatarUrl: isMom ? momAvatar : dadAvatar,
+                        avatarUrl: pm.avatar_url || pm.avatarUrl || '',
                         location: finalLocation,
                         age: isMom ? 62 : 68,
                         city: rawCity,

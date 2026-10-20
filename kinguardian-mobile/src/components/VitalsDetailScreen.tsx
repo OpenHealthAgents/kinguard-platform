@@ -1,5 +1,5 @@
 import React, { useState, useContext } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, Image } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, TextInput } from 'react-native';
 import {
   ArrowLeft,
   TrendingUp,
@@ -15,6 +15,7 @@ import {
 import Svg, { Path, Circle, Line, Defs, LinearGradient, Stop } from 'react-native-svg';
 import { useRouter } from 'expo-router';
 import { AppContext } from '../store/AppContext';
+import { Avatar } from './ui/Avatar';
 import { realDataService } from '../services/api-client/RealDataService';
 
 
@@ -150,13 +151,11 @@ export const VitalsDetailScreen: React.FC<VitalsDetailScreenProps> = ({
         {/* Parent Header Card */}
         <View className="bg-white rounded-3xl p-5 border border-[#e2dfd9] shadow-sm flex-row items-center justify-between">
           <View className="flex-row items-center gap-4">
-            <Image
-              source={{
-                uri:
-                  parent.avatarUrl ||
-                  'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e'
-              }}
-              className="w-14 h-14 rounded-full border border-slate-100"
+            <Avatar
+              url={parent.avatarUrl}
+              name={parent.name}
+              size="xl"
+              status="none"
             />
             <View className="space-y-0.5">
               <Text className="text-xl font-black text-[#121c2a]">{parent.name}</Text>
@@ -596,13 +595,11 @@ export const VitalsDetailScreen: React.FC<VitalsDetailScreenProps> = ({
                 key={member.id}
                 className="bg-white rounded-3xl p-4 border border-[#e2dfd9] items-center space-y-1.5 w-24 shrink-0 shadow-sm"
               >
-                <Image
-                  source={{
-                    uri:
-                      member.avatarUrl ||
-                      'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e'
-                  }}
-                  className="w-10 h-10 rounded-full border border-slate-100"
+                <Avatar
+                  url={member.avatarUrl}
+                  name={member.name}
+                  size="md"
+                  status="none"
                 />
                 <View className="items-center">
                   <Text

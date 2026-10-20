@@ -1,5 +1,5 @@
 import { useContext, useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
   ArrowLeft,
@@ -23,6 +23,7 @@ import {
 import { AppContext } from '../../../../src/store/AppContext';
 import { DeviceFrame } from '../../../../src/components/DeviceFrame';
 import { SimulatorControls } from '../../../../src/components/SimulatorControls';
+import { Avatar } from '../../../../src/components/ui/Avatar';
 import { googleFitService } from '../../../../src/services/health/GoogleFitService';
 import { realDataService } from '../../../../src/services/api-client/RealDataService';
 
@@ -229,11 +230,6 @@ export default function ParentClinicalOverviewRoute() {
       (m) => m.role === 'caregiver' || m.relationship?.toLowerCase().includes('caregiver') || m.relation?.toLowerCase().includes('caregiver')
     );
 
-  const isMother =
-    resolvedRelationship.toLowerCase().includes('mother') ||
-    resolvedName.toLowerCase().includes('jane') ||
-    !isDad;
-
   return (
     <DeviceFrame>
       <View className="flex-1 relative bg-[#f8f9fc]">
@@ -288,15 +284,12 @@ export default function ParentClinicalOverviewRoute() {
           {/* Parent Summary Card */}
           <View className="bg-white rounded-3xl p-5 border border-slate-200 shadow-sm space-y-4">
             <View className="flex-row items-center gap-3.5">
-              <Image
-                source={{
-                  uri:
-                    person.avatarUrl ||
-                    (isMother
-                      ? 'https://images.unsplash.com/photo-1544005313-94ddf0286df2'
-                      : 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e')
-                }}
-                className="w-14 h-14 rounded-full border-2 border-blue-100"
+              <Avatar
+                url={person.avatarUrl}
+                name={resolvedName}
+                size="xl"
+                status="online"
+                statusDotColor={isNeedsAttention ? '#ff3b30' : '#34c759'}
               />
               <View className="flex-1">
                 <Text className="text-lg font-black text-slate-900">{resolvedName}</Text>
@@ -583,9 +576,11 @@ export default function ParentClinicalOverviewRoute() {
 
               <View className="flex-row items-center justify-between pt-1">
                 <View className="flex-row items-center gap-3">
-                  <Image
-                    source={{ uri: caregiverMember.avatarUrl || 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2' }}
-                    className="w-11 h-11 rounded-full border border-blue-200"
+                  <Avatar
+                    url={caregiverMember.avatarUrl}
+                    name={caregiverMember.name}
+                    size="md"
+                    status="none"
                   />
                   <View>
                     <Text className="text-sm font-bold text-slate-900">{caregiverMember.name}</Text>

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TextInput, TouchableOpacity, Image } from 'react-native';
+import { View, Text, ScrollView, TextInput, TouchableOpacity } from 'react-native';
 import { Sparkles, Send } from 'lucide-react-native';
+import { Avatar } from './ui/Avatar';
 import { ChatMessage } from '../types';
 
 interface ChatViewProps {
@@ -46,8 +47,7 @@ export const ChatView: React.FC<ChatViewProps> = ({ onAskAI, messages, onSendMes
       <ScrollView className="flex-1 px-5 pt-4 space-y-4">
         {messages.map((m) => {
           const isMe = m.sender === 'user';
-          const avatar =
-            m.senderAvatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100';
+          const avatar = m.senderAvatar || '';
           const time = m.timestamp;
           const senderLabel = m.senderName;
 
@@ -56,9 +56,11 @@ export const ChatView: React.FC<ChatViewProps> = ({ onAskAI, messages, onSendMes
               key={m.id}
               className={`flex-row gap-3 py-1 ${isMe ? 'flex-row-reverse' : 'flex-row'}`}
             >
-              <Image
-                source={{ uri: avatar }}
-                className="w-8 h-8 rounded-full object-cover shrink-0 border border-[#dee9fc]"
+              <Avatar
+                url={avatar}
+                name={senderLabel}
+                size="sm"
+                status="none"
               />
               <View className={`max-w-[75%] space-y-1 ${isMe ? 'items-end' : 'items-start'}`}>
                 <View className="flex-row items-center gap-2 px-1">

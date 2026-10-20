@@ -1,5 +1,5 @@
 import React, { useState, useContext, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image, ActivityIndicator, Modal, TextInput } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Modal, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
   Pill,
@@ -21,6 +21,7 @@ import {
   ChevronRight
 } from 'lucide-react-native';
 import { HealthRecordItem, SyncLog, Person } from '../types';
+import { Avatar } from './ui/Avatar';
 import { SyncDashboard } from './SyncDashboard';
 import { AppContext } from '../store/AppContext';
 import { realDataService, RealCareTask } from '../services/api-client/RealDataService';
@@ -1123,15 +1124,11 @@ export const CareView: React.FC<CareViewProps> = ({
             <View key={subject.id} className="space-y-2.5">
               <View className="flex-row items-center justify-between px-1">
                 <View className="flex-row items-center gap-2">
-                  <Image
-                    source={{
-                      uri:
-                        subject.avatarUrl ||
-                        (isSubjectDad
-                          ? 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e'
-                          : 'https://images.unsplash.com/photo-1544005313-94ddf0286df2')
-                    }}
-                    className="w-7 h-7 rounded-full"
+                  <Avatar
+                    url={subject.avatarUrl}
+                    name={subject.name}
+                    size="sm"
+                    status="none"
                   />
                   <Text className="text-sm font-bold text-neutral-800">{subject.name}'s Medications</Text>
                 </View>
@@ -1301,13 +1298,11 @@ export const CareView: React.FC<CareViewProps> = ({
                 onPress={() => router.push(`/caregiver/${member.id}`)}
                 className="bg-white rounded-2xl p-4 border border-neutral-100 items-center space-y-1.5 w-24 shrink-0 shadow-sm active:scale-95"
               >
-                <Image
-                  source={{
-                    uri:
-                      member.avatarUrl ||
-                      'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e'
-                  }}
-                  className="w-10 h-10 rounded-full"
+                <Avatar
+                  url={member.avatarUrl}
+                  name={member.name}
+                  size="md"
+                  status="none"
                 />
                 <View className="items-center">
                   <Text

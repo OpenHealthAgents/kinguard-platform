@@ -1,9 +1,7 @@
 import { Person, HealthObservation, HealthRecordItem } from '../types';
 
-export const DAD_AVATAR =
-  'https://lh3.googleusercontent.com/aida-public/AB6AXuALvS8om7n8gN1nN9dwPrBv-8lUIiusfbDJ_24xukhktin6SS4Fum03pBDjOv6QZq7FG1zrXkOAvuYXPyd3bNWRiExOfo8jITls7X2v_F_ae2gOUZWhU50WGJItnoRtI9opmF1QBZU6bzSEV02qftPpb92imjH5svG7X7JsNrBwsRS4KyeFQ20zUd6kbGNULu6DnWuaKXcPSFfVBT19aNcq-tWb94VlGR9d-nSgRSdV7ns615jW5_9B';
-export const USER_AVATAR =
-  'https://lh3.googleusercontent.com/aida-public/AB6AXuBjb58pDYmLPOvRb2C93qIwVmN3Z3qZ__ljM1T9ZSdVoVI9ovH8x3UkvVX2km1jcc-lJDB8XKVXGhKX0bZL8qDi2s9jgC8eOKs1TubpaykQObp6xTg11e7t9fDFBiO9G_knt_Iu91RQ6oYuQGrd_EwUBKvQprl0XXO1mrgZ2LripRVXQ9ztlZOQr21ScUbgnP5iva9lVWOYFTQ4E6180FpDmnFn1lhIDcG8awhKsT88RjoTEgkPxtmV';
+export const DAD_AVATAR = '';
+export const USER_AVATAR = '';
 export const PARENTS_ILLUSTRATION =
   'https://lh3.googleusercontent.com/aida-public/AB6AXuCPIugiITm25UazY2VI-2pFTFlpCdsA4usgq-4btIyUPCguH2WGhwQWHZ-VLu9skYGhiNy2S_QSY1iJ1LysxMHRZtiIHM0lgR92SsLOzBF3zQNckaj7APjAwizPMZcAXNE6U4KG4Cc5RZ-sx7pdehL0Q8Cnz0wxY6a3Y6hnzpzcTm9uIHqr4cEeIEcKnJW_JpyUkZg6YPNBwDCWg5moqbM_aJsK9b_fAIecXLS_3FlufTwO9NEo4L70';
 
@@ -13,8 +11,8 @@ export const INITIAL_PEOPLE: Person[] = [
     name: 'Aniruddha',
     relation: 'Father',
     relationship: 'Father',
-    avatarUrl: DAD_AVATAR,
-    avatar: DAD_AVATAR,
+    avatarUrl: '',
+    avatar: '',
     age: 68,
     city: 'Chennai',
     country: 'India',
@@ -29,10 +27,8 @@ export const INITIAL_PEOPLE: Person[] = [
     name: 'Vandana',
     relation: 'Mother',
     relationship: 'Mother',
-    avatarUrl:
-      'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=256',
-    avatar:
-      'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=256',
+    avatarUrl: '',
+    avatar: '',
     age: 64,
     city: 'Chennai',
     country: 'India',
@@ -48,8 +44,8 @@ export const INITIAL_PEOPLE: Person[] = [
     role: 'coordinator',
     relation: 'Coordinator',
     relationship: 'Coordinator',
-    avatarUrl: USER_AVATAR,
-    avatar: USER_AVATAR,
+    avatarUrl: '',
+    avatar: '',
     age: 36,
     city: 'London',
     country: 'UK',
@@ -64,10 +60,8 @@ export const INITIAL_PEOPLE: Person[] = [
     name: 'Family Member',
     relation: 'Brother',
     relationship: 'Brother',
-    avatarUrl:
-      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=256',
-    avatar:
-      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=256',
+    avatarUrl: '',
+    avatar: '',
     age: 39,
     city: 'Dubai',
     country: 'UAE',

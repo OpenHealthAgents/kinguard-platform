@@ -1,9 +1,10 @@
 import { useContext, useState } from 'react';
-import { View, Text, TouchableOpacity, Image, ScrollView, Modal, TextInput } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Modal, TextInput } from 'react-native';
 import { AppContext } from '../../src/store/AppContext';
 import { BottomNavBar } from '../../src/components/Navigation';
 import { DeviceFrame } from '../../src/components/DeviceFrame';
 import { SimulatorControls } from '../../src/components/SimulatorControls';
+import { Avatar } from '../../src/components/ui/Avatar';
 import { useRouter } from 'expo-router';
 import { ChevronRight, Clock, Pill, Calendar, Plus, X, UserPlus } from 'lucide-react-native';
 
@@ -137,23 +138,13 @@ export default function CoordinatorParentsRoute() {
                   isActive ? 'border-[#007aff] shadow-lg shadow-blue-100/50' : 'border-neutral-200 shadow-md'
                 } flex-row items-start gap-4`}
               >
-                <View className="relative">
-                  <Image
-                    source={{
-                      uri:
-                        p.avatarUrl ||
-                        (isDad
-                          ? 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e'
-                          : 'https://images.unsplash.com/photo-1544005313-94ddf0286df2')
-                    }}
-                    className="w-14 h-14 rounded-full border-2 border-white shadow-md"
-                  />
-                  <View
-                    className={`absolute bottom-0 right-0 w-4 h-4 rounded-full border-2 border-white shadow-sm ${
-                      isUnwell ? 'bg-[#ff3b30]' : 'bg-[#34c759]'
-                    }`}
-                  />
-                </View>
+                <Avatar
+                  url={p.avatarUrl}
+                  name={p.name}
+                  size="xl"
+                  status="online"
+                  statusDotColor={isUnwell ? '#ff3b30' : '#34c759'}
+                />
 
                 <View className="flex-1 space-y-2">
                   <View className="flex-row items-center justify-between flex-wrap gap-1">
