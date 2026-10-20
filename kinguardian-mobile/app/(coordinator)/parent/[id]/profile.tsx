@@ -140,7 +140,11 @@ export default function ParentFhirProfileRoute() {
           </View>
         </View>
 
-        <ScrollView className="flex-1 px-5 pt-4 space-y-6" contentContainerStyle={{ paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          className="flex-1"
+          contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 120, gap: 20 }}
+          showsVerticalScrollIndicator={false}
+        >
           {/* Patient Identity Banner */}
           <View className="bg-white rounded-3xl p-5 border border-slate-200 shadow-sm space-y-4">
             <View className="flex-row items-center gap-4">

@@ -391,7 +391,7 @@ export const ParentDevicesScreen: React.FC<ParentDevicesScreenProps> = ({ onBack
         </View>
       </View>
 
-      <View className="p-6 space-y-6">
+      <View style={{ padding: 20, gap: 24 }}>
         {isLoading ? (
           <View className="py-12 items-center justify-center">
             <ActivityIndicator size="large" color="#007aff" />

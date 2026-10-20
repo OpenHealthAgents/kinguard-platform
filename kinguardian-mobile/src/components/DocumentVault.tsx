@@ -351,7 +351,7 @@ export const DocumentVault: React.FC<DocumentVaultProps> = ({
         </View>
       </View>
 
-      <View className="p-5 space-y-5">
+      <View style={{ padding: 20, gap: 24 }}>
         {/* workflow step manager */}
         {workflowStep === 'idle' && (
           <View className="space-y-2">

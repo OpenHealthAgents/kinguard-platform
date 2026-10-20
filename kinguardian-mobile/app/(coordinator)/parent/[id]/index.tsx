@@ -295,7 +295,11 @@ export default function ParentClinicalOverviewRoute() {
           </View>
         </View>
 
-        <ScrollView className="flex-1 px-5 pt-4 space-y-6" contentContainerStyle={{ paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          className="flex-1"
+          contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 120, gap: 24 }}
+          showsVerticalScrollIndicator={false}
+        >
           {/* Parent Summary Card */}
           <View className="bg-white rounded-3xl p-5 border border-slate-200 shadow-sm space-y-4">
             <View className="flex-row items-center gap-3.5">
@@ -410,7 +414,7 @@ export default function ParentClinicalOverviewRoute() {
           </View>
 
           {/* 5 FHIR Clinical Modules */}
-          <View className="space-y-3">
+          <View style={{ gap: 12 }}>
             <View className="flex-row items-center justify-between px-1 mb-1">
               <Text className="text-xs font-bold text-slate-400 uppercase tracking-wider">
                 FHIR Clinical Modules
@@ -518,7 +522,7 @@ export default function ParentClinicalOverviewRoute() {
           </View>
 
           {/* Quick Actions Grid */}
-          <View className="space-y-3">
+          <View style={{ gap: 12 }}>
             <Text className="text-xs font-bold text-slate-400 uppercase tracking-wider px-1">
               Clinical & Care Actions
             </Text>

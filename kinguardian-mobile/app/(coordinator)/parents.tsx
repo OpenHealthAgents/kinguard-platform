@@ -66,7 +66,10 @@ export default function CoordinatorParentsRoute() {
           </TouchableOpacity>
         </View>
 
-        <ScrollView className="flex-1 px-5 pt-4 space-y-4" contentContainerStyle={{ paddingBottom: 120 }}>
+        <ScrollView
+          className="flex-1"
+          contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 120, gap: 16 }}
+        >
           {(() => {
             const rawParents = context.people.filter(
               (p) =>

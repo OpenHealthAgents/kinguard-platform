@@ -387,13 +387,13 @@ export default function CoordinatorProfileRoute() {
 
         <ScrollView
           className="flex-1"
-          contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 40 }}
+          contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 120, gap: 20 }}
           showsVerticalScrollIndicator={false}
         >
           {/* User Profile Card */}
           <View
             testID="coordinator-profile-session-card"
-            className="p-4 rounded-2xl border border-neutral-100 bg-white flex-row items-center gap-4 shadow-sm mb-4"
+            className="p-4 rounded-2xl border border-neutral-100 bg-white flex-row items-center gap-4 shadow-sm"
           >
             <View className="w-12 h-12 rounded-full bg-blue-50 items-center justify-center">
               <User size={22} color="#007aff" />
@@ -418,8 +418,8 @@ export default function CoordinatorProfileRoute() {
           </View>
 
           {/* Settings Options Cards */}
-          <View className="mb-2">
-            <Text className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider mb-2.5 px-1">
+          <View style={{ gap: 12 }}>
+            <Text className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider mb-1 px-1">
               Care Circle & System Settings
             </Text>
 

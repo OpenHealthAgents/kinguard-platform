@@ -160,8 +160,8 @@ export default function ParentMedicationsRoute() {
 
         <ScrollView
           testID="coordinator-medications-list"
-          className="flex-1 px-5 pt-4 space-y-6"
-          contentContainerStyle={{ paddingBottom: 120 }}
+          className="flex-1"
+          contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 120, gap: 20 }}
           showsVerticalScrollIndicator={false}
         >
           {/* Adherence Score Card */}
@@ -223,7 +223,7 @@ export default function ParentMedicationsRoute() {
           )}
 
           {/* Active Prescriptions */}
-          <View className="space-y-3 mb-10">
+          <View style={{ gap: 16 }}>
             <Text className="text-xs font-bold text-slate-400 uppercase tracking-wider px-1">
               Active Prescriptions ({activeMeds.length})
             </Text>

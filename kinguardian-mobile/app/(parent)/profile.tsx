@@ -249,11 +249,11 @@ export default function ParentProfileRoute() {
 
         <ScrollView
           className="flex-1"
-          contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 40 }}
+          contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 120, gap: 20 }}
           showsVerticalScrollIndicator={false}
         >
           {/* Options List - Separated Cards with Proper Spacing */}
-          <View className="mb-4">
+          <View style={{ gap: 12 }} className="mb-4">
             {profileOptions.map((opt, idx) => {
               const IconComponent = opt.icon;
               return (

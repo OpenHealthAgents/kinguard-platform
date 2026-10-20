@@ -147,7 +147,11 @@ export default function ParentLabsRoute() {
           </View>
         </View>
 
-        <ScrollView className="flex-1 px-5 pt-4 space-y-6" contentContainerStyle={{ paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          className="flex-1"
+          contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 120, gap: 20 }}
+          showsVerticalScrollIndicator={false}
+        >
           {/* FHIR DiagnosticReport Banner */}
           {fhirLabs?.verified_from_fhir && (
             <View className="bg-indigo-50 border border-indigo-200 rounded-2xl p-3 flex-row items-center justify-between">
@@ -223,7 +227,7 @@ export default function ParentLabsRoute() {
           </View>
 
           {/* Test Metrics List */}
-          <View className="space-y-3 mb-10">
+          <View style={{ gap: 12 }}>
             <Text className="text-xs font-bold text-slate-400 uppercase tracking-wider px-1">
               Test Biomarkers & Reference Ranges ({fhirLabs?.reports?.[0]?.observations?.length || labMetrics.length})
             </Text>

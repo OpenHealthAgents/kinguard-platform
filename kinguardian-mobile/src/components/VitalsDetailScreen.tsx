@@ -147,7 +147,7 @@ export const VitalsDetailScreen: React.FC<VitalsDetailScreenProps> = ({
         <View className="w-9 h-9" />
       </View>
 
-      <View className="p-5 space-y-6">
+      <View style={{ padding: 20, gap: 24 }}>
         {/* Parent Header Card */}
         <View className="bg-white rounded-3xl p-5 border border-[#e2dfd9] shadow-sm flex-row items-center justify-between">
           <View className="flex-row items-center gap-4">

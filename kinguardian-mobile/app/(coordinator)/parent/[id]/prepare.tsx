@@ -426,7 +426,10 @@ export default function AppointmentPrepareRoute() {
           </TouchableOpacity>
         </View>
 
-        <ScrollView className="flex-1 px-6 pt-4 space-y-6" contentContainerStyle={{ paddingBottom: 120 }}>
+        <ScrollView
+          className="flex-1"
+          contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 120, gap: 24 }}
+        >
           {/* EHR Outage Simulator Control Pill */}
           <View className="flex-row items-center justify-between px-1">
             <Text className="text-[10px] font-black text-slate-400 uppercase tracking-widest">

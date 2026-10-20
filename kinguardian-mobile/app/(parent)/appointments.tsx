@@ -103,8 +103,8 @@ export default function AppointmentsRoute() {
         </View>
 
         <ScrollView
-          className="flex-1 p-5 space-y-5"
-          contentContainerStyle={{ paddingBottom: 120 }}
+          className="flex-1"
+          contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 120, gap: 20 }}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }

@@ -168,7 +168,11 @@ export default function ParentConditionsRoute() {
           </TouchableOpacity>
         </View>
 
-        <ScrollView className="flex-1 px-5 pt-4 space-y-6" contentContainerStyle={{ paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          className="flex-1"
+          contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 120, gap: 20 }}
+          showsVerticalScrollIndicator={false}
+        >
           {/* Summary Box */}
           <View className="bg-white rounded-3xl p-5 border border-slate-200 shadow-sm space-y-3">
             <View className="flex-row items-center justify-between">
@@ -189,7 +193,7 @@ export default function ParentConditionsRoute() {
           </View>
 
           {/* Conditions List */}
-          <View className="space-y-3 mb-10">
+          <View style={{ gap: 16 }}>
             {conditionsList.map((cond) => {
               const isActive = cond.status === 'active';
               const isControlled = cond.status === 'controlled';

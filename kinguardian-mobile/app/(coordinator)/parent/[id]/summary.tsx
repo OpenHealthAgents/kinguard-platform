@@ -211,7 +211,10 @@ export default function DoctorSummaryRoute() {
           </View>
         </View>
 
-        <ScrollView className="flex-1 px-6 pt-5 space-y-6" contentContainerStyle={{ paddingBottom: 120 }}>
+        <ScrollView
+          className="flex-1"
+          contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 120, gap: 24 }}
+        >
           {/* Outage Simulation Quick Toggle (TEST WEAR-008 Live Control) */}
           <View className="bg-white border border-[#e2dfd9] rounded-2xl p-4 shadow-sm space-y-2.5">
             <View className="flex-row items-center justify-between">

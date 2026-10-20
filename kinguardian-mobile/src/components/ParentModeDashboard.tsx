@@ -427,7 +427,7 @@ export const ParentModeDashboard: React.FC<ParentModeDashboardProps> = ({
         </View>
       </View>
 
-      <View className="p-5 space-y-6">
+      <View style={{ padding: 20, gap: 24 }}>
         {context?.currentScenario === 'upcoming-appointment' && (
           <TouchableOpacity
             accessible={true}
@@ -900,7 +900,7 @@ export const ParentModeDashboard: React.FC<ParentModeDashboardProps> = ({
             </TouchableOpacity>
           </View>
 
-          <View className="space-y-2">
+          <View style={{ gap: 12 }}>
             {activeMedicationsList.length > 0 ? (
               activeMedicationsList.slice(0, 3).map((med: any) => {
                 const medId = med.id || med.medication_ref || med.name || med.title;

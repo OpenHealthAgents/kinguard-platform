@@ -27,7 +27,7 @@ export const TransparencyInsightScreen: React.FC<TransparencyInsightScreenProps>
         <View className="w-9 h-9" />
       </View>
 
-      <View className="p-5 space-y-6">
+      <View style={{ padding: 20, gap: 24 }}>
         {/* Intro Reasoner transparency splash */}
         <View className="bg-white rounded-3xl p-5 border border-[#e2dfd9] shadow-sm space-y-3">
           <View className="flex-row items-center gap-1.5">

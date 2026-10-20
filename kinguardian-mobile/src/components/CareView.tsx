@@ -389,8 +389,8 @@ export const CareView: React.FC<CareViewProps> = ({
         </View>
 
         <ScrollView
-          className="flex-1 p-5 space-y-6"
-          contentContainerStyle={{ paddingBottom: 120 }}
+          className="flex-1"
+          contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 120, gap: 24 }}
           testID={isCaregiverView ? 'care-assigned-list' : 'care-task-list'}
         >
           {/* Scheduler / Overdue Evaluation Bar (TEST CARE-004) */}
@@ -521,7 +521,7 @@ export const CareView: React.FC<CareViewProps> = ({
                   <Text className="text-xs font-black uppercase text-neutral-500 tracking-wider pl-1">
                     {groupTitle} ({groupTasks.length})
                   </Text>
-                  <View className="space-y-2.5">
+                  <View style={{ gap: 12 }}>
                     {groupTasks.map((task) => {
                       const isCompleted = task.status === 'completed';
                       const isOverdue = task.status === 'overdue';
@@ -1073,7 +1073,10 @@ export const CareView: React.FC<CareViewProps> = ({
 
   // Medications plan segment
   return (
-    <ScrollView className="flex-1 bg-[#f2f2f7]" contentContainerStyle={{ paddingBottom: 120 }}>
+    <ScrollView
+      className="flex-1 bg-[#f2f2f7]"
+      contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 120, gap: 24 }}
+    >
       {/* Header */}
       <View className="bg-white border-b border-neutral-100 pt-5 pb-3 px-6 space-y-3 shadow-xs">
         <View className="flex-row items-center justify-between">

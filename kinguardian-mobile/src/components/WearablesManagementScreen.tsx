@@ -603,7 +603,7 @@ export const WearablesManagementScreen: React.FC<WearablesManagementScreenProps>
       </View>
 
       {/* Info Banner */}
-      <View className="p-5 space-y-6">
+      <View style={{ padding: 20, gap: 24 }}>
         <View className="bg-gradient-to-r from-[#2a14b4] to-[#4338ca] bg-[#2a14b4] rounded-2xl p-4 shadow-sm flex-row items-center gap-3.5">
           <View className="w-10 h-10 rounded-xl bg-white/10 items-center justify-center">
             <Activity size={22} color="#ffffff" />
@@ -822,7 +822,7 @@ export const WearablesManagementScreen: React.FC<WearablesManagementScreenProps>
         {/* ========================================================================= */}
         {/* SECTION 1: CONNECTED DEVICES                                              */}
         {/* ========================================================================= */}
-        <View className="space-y-3">
+        <View style={{ gap: 16 }}>
           <View className="flex-row items-center justify-between">
             <Text className="text-xs font-black text-slate-700 uppercase tracking-wider">
               Connected Devices ({connectedDevices.length})
@@ -983,7 +983,7 @@ export const WearablesManagementScreen: React.FC<WearablesManagementScreenProps>
         {/* ========================================================================= */}
         {/* SECTION 2: AVAILABLE / NOT CONNECTED DEVICES                              */}
         {/* ========================================================================= */}
-        <View className="space-y-3">
+        <View style={{ gap: 14 }}>
           <Text className="text-xs font-black text-slate-700 uppercase tracking-wider">
             Available Providers
           </Text>

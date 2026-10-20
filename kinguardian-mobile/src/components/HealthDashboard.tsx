@@ -566,7 +566,10 @@ export const HealthDashboard: React.FC<HealthDashboardProps> = ({
       </View>
 
       {/* Main Full-Screen ScrollView */}
-      <ScrollView className="flex-1 px-5 pt-4 space-y-6" contentContainerStyle={{ paddingBottom: 120 }}>
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 120, gap: 24 }}
+      >
         {/* Hero Greeting & Emergency Summary */}
         <View className="flex-row items-start justify-between">
           <View className="space-y-1 flex-1 mr-3">
@@ -667,7 +670,7 @@ export const HealthDashboard: React.FC<HealthDashboardProps> = ({
                   </Text>
                 </View>
               ) : (
-                <View className="space-y-2">
+                <View style={{ gap: 12 }}>
                   {searchResults.map((item, rIdx) => {
                     const isMed = item.category === 'medication';
                     const isTask = item.category === 'care_task';
@@ -1528,7 +1531,7 @@ export const HealthDashboard: React.FC<HealthDashboardProps> = ({
           </View>
 
           {/* 5 Clinical Module Quick Nav Tiles */}
-          <View>
+          <View style={{ gap: 10 }}>
             {/* 1. Profile & Identity */}
             <TouchableOpacity
               onPress={() => router.push(`/(coordinator)/parent/${primaryPerson?.id || 'dad'}/profile` as any)}
@@ -1705,7 +1708,7 @@ export const HealthDashboard: React.FC<HealthDashboardProps> = ({
               <Text className="text-[10px] font-bold text-blue-600">Add Parent</Text>
             </TouchableOpacity>
           </View>
-          <View className="space-y-2">
+          <View style={{ gap: 12 }}>
             {displayFamilyMembers.map((person: any, idx: number) => {
               const isSelected = person.id === currentPersonId || person.backendSubjectId === currentPersonId;
               const cleanName = person.name ? (person.name.charAt(0).toUpperCase() + person.name.slice(1)) : 'Member';

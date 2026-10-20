@@ -38,7 +38,11 @@ export default function ParentMedicinesRoute() {
           </Text>
         </View>
 
-        <ScrollView testID="parent-medicines-list" className="flex-1 p-5 space-y-5" contentContainerStyle={{ paddingBottom: 120 }}>
+        <ScrollView
+          testID="parent-medicines-list"
+          className="flex-1"
+          contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 120, gap: 20 }}
+        >
           {userMeds.some((m) => m.id === 'rec-5' && m.status !== 'taken') && (
             <View className="bg-orange-50 border border-orange-100/50 rounded-2xl p-4 mb-1.5 shadow-sm">
               <Text className="text-sm font-bold text-neutral-800">
@@ -58,7 +62,7 @@ export default function ParentMedicinesRoute() {
             </View>
           )}
 
-          <View className="space-y-4">
+          <View style={{ gap: 16 }}>
             {userMeds.length === 0 ? (
               <View
                 testID="parent-medicines-empty"
