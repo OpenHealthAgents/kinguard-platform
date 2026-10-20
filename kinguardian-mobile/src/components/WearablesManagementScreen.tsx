@@ -33,6 +33,30 @@ import { googleFitService } from '../services/health/GoogleFitService';
 import { healthConnectService } from '../services/health/HealthConnectService';
 
 
+export function formatProviderName(provider?: string): string {
+  if (!provider) return 'Wearable';
+  const p = provider.toLowerCase().trim();
+  if (p === 'health_connect' || p === 'google_fit' || p === 'google_health') return 'Google Fit / Health Connect';
+  if (p === 'apple_watch' || p === 'apple_health') return 'Apple Watch';
+  if (p === 'garmin') return 'Garmin';
+  if (p === 'fitbit') return 'Fitbit';
+  if (p === 'oura') return 'Oura Ring';
+  if (p === 'whoop') return 'Whoop';
+  return provider.charAt(0).toUpperCase() + provider.slice(1);
+}
+
+export function formatShortSource(provider?: string): string {
+  if (!provider) return 'Wearable';
+  const p = provider.toLowerCase().trim();
+  if (p === 'health_connect' || p === 'google_fit') return 'Google Fit';
+  if (p === 'apple_watch' || p === 'apple_health') return 'Apple Watch';
+  if (p === 'garmin') return 'Garmin';
+  if (p === 'fitbit') return 'Fitbit';
+  if (p === 'oura') return 'Oura';
+  if (p === 'whoop') return 'Whoop';
+  return provider;
+}
+
 export interface WearableDeviceItem {
   id: string;
   name: string;
@@ -94,6 +118,8 @@ export const WearablesManagementScreen: React.FC<WearablesManagementScreenProps>
     (p: any) => p.id === activePersonId || p.backendSubjectId === activePersonId || p.name.toLowerCase() === activePersonId.toLowerCase()
   ) || peopleList[0];
 
+  const resolvedSubjectId = (currentPersonObj as any)?.backendSubjectId || (currentPersonObj as any)?.id || activePersonId;
+
   const resolvedParentName = currentPersonObj?.name
     ? `${currentPersonObj.name} (${(currentPersonObj as any).relation || (currentPersonObj as any).relationship || 'Parent'})`
     : parentName;
@@ -106,7 +132,6 @@ export const WearablesManagementScreen: React.FC<WearablesManagementScreenProps>
       model: 'Health Connect & Google Fit • Android',
       status: 'not_connected',
       lastSyncedText: 'Not connected',
-      batteryLevel: 88,
       permissions: {
         activity: false,
         sleep: false,
@@ -122,7 +147,6 @@ export const WearablesManagementScreen: React.FC<WearablesManagementScreenProps>
       model: 'Series 9 • 45mm',
       status: 'not_connected',
       lastSyncedText: 'Not connected',
-      batteryLevel: 92,
       permissions: {
         activity: false,
         sleep: false,
@@ -138,7 +162,6 @@ export const WearablesManagementScreen: React.FC<WearablesManagementScreenProps>
       model: 'Venu 3 • Slate Black',
       status: 'not_connected',
       lastSyncedText: 'Not connected',
-      batteryLevel: 78,
       permissions: {
         activity: false,
         sleep: false,
@@ -207,9 +230,9 @@ export const WearablesManagementScreen: React.FC<WearablesManagementScreenProps>
     try {
       const [_providersRes, liveConnsRes, healthSummaryRes, activityRes] = await Promise.allSettled([
         realDataService.getWearableProviders(),
-        realDataService.getWearableConnections(activePersonId),
-        realDataService.getWearableHealthSummary(activePersonId),
-        realDataService.getWearableActivity(activePersonId, 5)
+        realDataService.getWearableConnections(resolvedSubjectId),
+        realDataService.getWearableHealthSummary(resolvedSubjectId),
+        realDataService.getWearableActivity(resolvedSubjectId, 5)
       ]);
 
       if (liveConnsRes.status === 'fulfilled' && liveConnsRes.value && liveConnsRes.value.length > 0) {
@@ -238,6 +261,7 @@ export const WearablesManagementScreen: React.FC<WearablesManagementScreenProps>
                 : 'Last synced today';
               return {
                 ...d,
+                model: matched.device_type || d.model,
                 status: 'connected',
                 lastSyncedText: lastSyncStr,
                 isStale
@@ -260,9 +284,9 @@ export const WearablesManagementScreen: React.FC<WearablesManagementScreenProps>
       if (healthSummaryRes.status === 'fulfilled' && healthSummaryRes.value) {
         const s = healthSummaryRes.value;
         setTelemetry({
-          steps: s.steps,
-          heartRate: s.heart_rate,
-          sleepMinutes: s.sleep_minutes || 460,
+          steps: typeof s.steps === 'number' ? s.steps : 0,
+          heartRate: typeof s.heart_rate === 'number' ? s.heart_rate : 0,
+          sleepMinutes: typeof s.sleep_minutes === 'number' && s.sleep_minutes > 0 ? s.sleep_minutes : undefined,
           source: s.source || 'health_connect',
           lastSyncAt: s.last_sync_at || null,
           isStale: s.is_stale,
@@ -276,9 +300,9 @@ export const WearablesManagementScreen: React.FC<WearablesManagementScreenProps>
       } else if (activityRes.status === 'fulfilled' && activityRes.value && activityRes.value.length > 0) {
         const a = activityRes.value[0];
         setTelemetry({
-          steps: a.steps,
-          heartRate: a.heart_rate,
-          sleepMinutes: a.sleep_minutes || 460,
+          steps: typeof a.steps === 'number' ? a.steps : 0,
+          heartRate: typeof a.heart_rate === 'number' ? a.heart_rate : 0,
+          sleepMinutes: typeof a.sleep_minutes === 'number' && a.sleep_minutes > 0 ? a.sleep_minutes : undefined,
           source: a.source || 'health_connect',
           lastSyncAt: a.last_sync_at || null,
           isStale: false,
@@ -290,7 +314,7 @@ export const WearablesManagementScreen: React.FC<WearablesManagementScreenProps>
         setTelemetry({
           steps: liveTel.steps || 0,
           heartRate: liveTel.heartRate || 72,
-          sleepMinutes: liveTel.sleepMinutes || 460,
+          sleepMinutes: liveTel.sleepMinutes > 0 ? liveTel.sleepMinutes : undefined,
           source: 'health_connect',
           lastSyncAt: new Date().toISOString(),
           isStale: false,
@@ -301,17 +325,16 @@ export const WearablesManagementScreen: React.FC<WearablesManagementScreenProps>
       console.warn('Coordinator wearable sync failed:', e);
       setOutageError("We couldn't update your health data right now. Your connection is still intact.");
     }
-  }, [activePersonId]);
+  }, [resolvedSubjectId]);
 
   useEffect(() => {
     loadLiveWearables();
-    const targetSubjectId = (currentPersonObj as any)?.backendSubjectId || activePersonId;
-    googleFitService.startRealTimeStreaming(targetSubjectId, 30000);
+    googleFitService.startRealTimeStreaming(resolvedSubjectId, 30000);
     const unsubscribe = googleFitService.subscribe((data) => {
       setTelemetry((prev) => ({
         steps: data.steps > 0 ? data.steps : (prev?.steps || 0),
         heartRate: data.heartRate > 0 ? data.heartRate : (prev?.heartRate || 72),
-        sleepMinutes: data.sleepMinutes > 0 ? data.sleepMinutes : (prev?.sleepMinutes || 460),
+        sleepMinutes: data.sleepMinutes > 0 ? data.sleepMinutes : prev?.sleepMinutes,
         source: 'health_connect',
         lastSyncAt: new Date().toISOString(),
         isStale: prev?.isStale ?? false,
@@ -322,7 +345,7 @@ export const WearablesManagementScreen: React.FC<WearablesManagementScreenProps>
       unsubscribe();
       googleFitService.stopRealTimeStreaming();
     };
-  }, [loadLiveWearables, activePersonId, (currentPersonObj as any)?.backendSubjectId]);
+  }, [loadLiveWearables, resolvedSubjectId]);
 
   // ACTION 1: Connect / Reconnect Flow
   const handleInitiateConnect = (device: WearableDeviceItem) => {
@@ -333,13 +356,13 @@ export const WearablesManagementScreen: React.FC<WearablesManagementScreenProps>
     setIsConnecting(true);
     try {
       const provider = device.provider === 'apple_watch' ? 'apple_health' : device.provider;
-      await realDataService.connectWearable(provider, activePersonId);
-      await realDataService.completeWearableCallback(provider, activePersonId);
+      await realDataService.connectWearable(provider, resolvedSubjectId);
+      await realDataService.completeWearableCallback(provider, resolvedSubjectId);
       const liveTel = googleFitService.getLatestTelemetry();
-      await realDataService.syncHealthConnectTelemetry(activePersonId, {
+      await realDataService.syncHealthConnectTelemetry(resolvedSubjectId, {
         steps: liveTel.steps || 0,
         heart_rate: liveTel.heartRate || 72,
-        sleep_minutes: liveTel.sleepMinutes || 460
+        sleep_minutes: liveTel.sleepMinutes > 0 ? liveTel.sleepMinutes : undefined
       });
       await loadLiveWearables();
 
@@ -350,7 +373,6 @@ export const WearablesManagementScreen: React.FC<WearablesManagementScreenProps>
                 ...d,
                 status: 'connected',
                 lastSyncedText: 'Last synced just now',
-                batteryLevel: 85,
                 permissions: {
                   activity: true,
                   sleep: true,
@@ -379,7 +401,11 @@ export const WearablesManagementScreen: React.FC<WearablesManagementScreenProps>
     setIsSyncingTelemetry(true);
     try {
       const liveTel = googleFitService.getLatestTelemetry();
-      let realTelemetry = { steps: liveTel.steps || 0, heart_rate: liveTel.heartRate || 72, sleep_minutes: liveTel.sleepMinutes || 460 };
+      let realTelemetry = {
+        steps: liveTel.steps || 0,
+        heart_rate: liveTel.heartRate || 72,
+        sleep_minutes: liveTel.sleepMinutes > 0 ? liveTel.sleepMinutes : (telemetry?.sleepMinutes || 0)
+      };
       const isHealthConnectAvailable = await healthConnectService.isAvailable();
       if (isHealthConnectAvailable) {
         await healthConnectService.initializeAndAuthorize();
@@ -387,19 +413,19 @@ export const WearablesManagementScreen: React.FC<WearablesManagementScreenProps>
         if (nativeData && nativeData.isRealDeviceData && nativeData.steps > 0) {
           realTelemetry = {
             steps: nativeData.steps,
-            heart_rate: nativeData.heartRate,
-            sleep_minutes: nativeData.sleepMinutes
+            heart_rate: nativeData.heartRate || realTelemetry.heart_rate,
+            sleep_minutes: nativeData.sleepMinutes || realTelemetry.sleep_minutes
           };
         }
       }
 
-      await realDataService.syncHealthConnectTelemetry(activePersonId, realTelemetry);
+      await realDataService.syncHealthConnectTelemetry(resolvedSubjectId, realTelemetry);
       await loadLiveWearables();
 
       setTelemetry({
         steps: realTelemetry.steps,
         heartRate: realTelemetry.heart_rate,
-        sleepMinutes: realTelemetry.sleep_minutes,
+        sleepMinutes: realTelemetry.sleep_minutes > 0 ? realTelemetry.sleep_minutes : undefined,
         source: 'health_connect',
         lastSyncAt: new Date().toISOString(),
         isStale: false,
@@ -419,9 +445,13 @@ export const WearablesManagementScreen: React.FC<WearablesManagementScreenProps>
         )
       );
 
+      const sleepText = realTelemetry.sleep_minutes > 0
+        ? `${Math.floor(realTelemetry.sleep_minutes / 60)}h ${realTelemetry.sleep_minutes % 60}m`
+        : 'No sleep record';
+
       Alert.alert(
         'Health Data Synced',
-        `Live telemetry synchronized to KinGuardian normalized gateway:\n\n• Steps: ${realTelemetry.steps.toLocaleString()}\n• Heart Rate: ${realTelemetry.heart_rate} bpm\n• Sleep: ${Math.floor(realTelemetry.sleep_minutes / 60)}h ${realTelemetry.sleep_minutes % 60}m\n• Subject: ${resolvedParentName}\n\nStatus: Connected`
+        `Live telemetry synchronized to KinGuardian normalized gateway:\n\n• Steps: ${realTelemetry.steps.toLocaleString()}\n• Heart Rate: ${realTelemetry.heart_rate} bpm\n• Sleep: ${sleepText}\n• Subject: ${resolvedParentName}\n\nStatus: Connected`
       );
     } catch (e: any) {
       console.warn('Sync Now error:', e);
@@ -440,7 +470,7 @@ export const WearablesManagementScreen: React.FC<WearablesManagementScreenProps>
     if (!disconnectModalDevice) return;
     setIsDisconnecting(true);
     try {
-      const liveConns = await realDataService.getWearableConnections(activePersonId);
+      const liveConns = await realDataService.getWearableConnections(resolvedSubjectId);
       const matched = liveConns.find(
         (c) =>
           c.provider.toLowerCase() === disconnectModalDevice.provider.toLowerCase() ||
@@ -463,7 +493,7 @@ export const WearablesManagementScreen: React.FC<WearablesManagementScreenProps>
   const handleTestMalformedTelemetryRejection = async () => {
     setIsValidatingMalformed(true);
     try {
-      const res = await realDataService.fetchWearableMetricsWithValidation(activePersonId, true);
+      const res = await realDataService.fetchWearableMetricsWithValidation(resolvedSubjectId, true);
       if (res.status === 422 || res.rejected) {
         setValidationResult({
           tested: true,
@@ -529,14 +559,14 @@ export const WearablesManagementScreen: React.FC<WearablesManagementScreenProps>
           </Text>
         </View>
 
-        <View className="flex-row items-center justify-between">
-          <View>
-            <Text className="text-2xl font-black text-slate-900">Wearable Devices</Text>
-            <Text className="text-xs text-slate-500 font-medium mt-0.5">
+        <View className="flex-row items-start justify-between gap-2">
+          <View className="flex-1 min-w-0 pr-1">
+            <Text className="text-2xl font-black text-slate-900" numberOfLines={1}>Wearable Devices</Text>
+            <Text className="text-xs text-slate-500 font-medium mt-0.5" numberOfLines={1}>
               Care Subject: <Text className="font-bold text-slate-800">{resolvedParentName}</Text>
             </Text>
           </View>
-          <View className="bg-indigo-50 border border-indigo-100 rounded-full px-3 py-1.5 flex-row items-center gap-1.5">
+          <View className="bg-indigo-50 border border-indigo-100 rounded-full px-3 py-1.5 flex-row items-center gap-1.5 shrink-0 mt-1">
             <ShieldCheck size={14} color="#2a14b4" />
             <Text className="text-[11px] font-black text-[#2a14b4]">Open Wearables</Text>
           </View>
@@ -593,11 +623,11 @@ export const WearablesManagementScreen: React.FC<WearablesManagementScreenProps>
         {/* RECENT ACTIVITY TELEMETRY (wearable_data & Health Summary)                 */}
         {/* ========================================================================= */}
         <View className="space-y-3">
-          <View className="flex-row items-center justify-between">
-            <Text className="text-xs font-black text-slate-700 uppercase tracking-wider">
+          <View className="flex-row items-center justify-between flex-wrap gap-2">
+            <Text className="text-xs font-black text-slate-700 uppercase tracking-wider flex-1 min-w-[180px]">
               Live Biometric Telemetry (Normalized)
             </Text>
-            <View className="bg-indigo-50 border border-indigo-100 rounded-full px-2.5 py-0.5 flex-row items-center gap-1">
+            <View className="bg-indigo-50 border border-indigo-100 rounded-full px-2.5 py-0.5 flex-row items-center gap-1 shrink-0">
               <ShieldCheck size={11} color="#2a14b4" />
               <Text className="text-[10px] font-bold text-[#2a14b4]">
                 PostgreSQL • wearable_data
@@ -622,21 +652,21 @@ export const WearablesManagementScreen: React.FC<WearablesManagementScreenProps>
 
           {/* Telemetry Metric Cards */}
           <View testID="wearable-telemetry-metrics" className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-4">
-            <View className="flex-row items-center justify-between pb-3 border-b border-slate-100">
-              <View className="flex-row items-center gap-2">
-                <View className="w-8 h-8 rounded-xl bg-indigo-50 items-center justify-center">
+            <View className="flex-row items-center justify-between flex-wrap gap-2 pb-3 border-b border-slate-100">
+              <View className="flex-row items-center gap-2 flex-1 min-w-[170px]">
+                <View className="w-8 h-8 rounded-xl bg-indigo-50 items-center justify-center shrink-0">
                   <Activity size={16} color="#2a14b4" />
                 </View>
-                <View>
-                  <Text className="text-sm font-black text-slate-900">
+                <View className="flex-1 min-w-0">
+                  <Text className="text-sm font-black text-slate-900" numberOfLines={1}>
                     {outageError ? 'Telemetry Temporarily Unavailable' : "Today's Activity & Vitals"}
                   </Text>
-                  <Text className="text-[10px] text-slate-400 font-medium">
-                    {outageError ? 'Cached Biometrics Preserved' : `Source: ${telemetry?.source === 'health_connect' ? 'Google Health Connect / Fit' : telemetry?.source || 'Wearable'}`}
+                  <Text className="text-[10px] text-slate-400 font-medium" numberOfLines={1}>
+                    {outageError ? 'Cached Biometrics Preserved' : `Source: ${formatProviderName(telemetry?.source)}`}
                   </Text>
                 </View>
               </View>
-              <View className="flex-row items-center gap-2">
+              <View className="flex-row items-center gap-2 shrink-0 ml-auto">
                 <TouchableOpacity
                   onPress={handleSyncNow}
                   disabled={isSyncingTelemetry}
@@ -660,52 +690,56 @@ export const WearablesManagementScreen: React.FC<WearablesManagementScreenProps>
             </View>
 
             {/* 3 Metric Pills */}
-            <View className="flex-row gap-3">
-              {/* Steps (TEST WEAR-003 / WEAR-006) */}
+            <View className="flex-row gap-2 sm:gap-3">
               {/* Steps (TEST WEAR-003 / WEAR-004 / WEAR-006) */}
-              <View testID="wearable-metric-steps" className="flex-1 bg-slate-50 border border-slate-100 rounded-2xl p-3 items-center">
+              <View testID="wearable-metric-steps" className="flex-1 bg-slate-50 border border-slate-100 rounded-2xl p-2.5 sm:p-3 items-center min-w-0">
                 <View className="flex-row items-center gap-1 mb-1">
                   <Flame size={12} color="#f97316" />
                   <Text className="text-[10px] font-bold text-slate-500 uppercase">Steps</Text>
                 </View>
-                <Text testID="wearable-metric-steps-value" className="text-lg font-black text-slate-900">
+                <Text testID="wearable-metric-steps-value" className="text-base sm:text-lg font-black text-slate-900" numberOfLines={1}>
                   {telemetry && typeof telemetry.steps === 'number' ? telemetry.steps.toLocaleString() : '0'}
                 </Text>
-                <View className="flex-row items-center gap-1 mt-0.5">
-                  <Text className="text-[10px] text-emerald-600 font-bold">Live Moving</Text>
-                  <Text className="text-[9px] text-slate-400 font-semibold">• Google Fit</Text>
+                <View className="mt-1 w-full items-center">
+                  <Text numberOfLines={1} className="text-[9px] text-emerald-600 font-bold text-center">
+                    Live • {formatShortSource(telemetry?.source)}
+                  </Text>
                 </View>
               </View>
 
               {/* Heart Rate (TEST WEAR-003 / WEAR-004 / WEAR-006) */}
-              <View testID="wearable-metric-heart-rate" className="flex-1 bg-slate-50 border border-slate-100 rounded-2xl p-3 items-center">
+              <View testID="wearable-metric-heart-rate" className="flex-1 bg-slate-50 border border-slate-100 rounded-2xl p-2.5 sm:p-3 items-center min-w-0">
                 <View className="flex-row items-center gap-1 mb-1">
                   <Heart size={12} color="#e11d48" />
                   <Text className="text-[10px] font-bold text-slate-500 uppercase">Resting HR</Text>
                 </View>
-                <Text testID="wearable-metric-heart-rate-value" className="text-lg font-black text-slate-900">
-                  {telemetry ? `${telemetry.heartRate} bpm` : '68 bpm'}
+                <Text testID="wearable-metric-heart-rate-value" className="text-base sm:text-lg font-black text-slate-900" numberOfLines={1}>
+                  {telemetry && telemetry.heartRate > 0 ? `${telemetry.heartRate} bpm` : '--'}
                 </Text>
-                <View className="flex-row items-center gap-1 mt-0.5">
-                  <Text className="text-[10px] text-emerald-600 font-bold">Real-time</Text>
-                  <Text className="text-[9px] text-slate-400 font-semibold">• Live Stream</Text>
+                <View className="mt-1 w-full items-center">
+                  <Text numberOfLines={1} className="text-[9px] text-emerald-600 font-bold text-center">
+                    {telemetry && telemetry.heartRate > 0 ? 'Live Stream' : 'No stream'}
+                  </Text>
                 </View>
               </View>
 
               {/* Sleep Duration */}
-              <View testID="wearable-metric-sleep" className="flex-1 bg-slate-50 border border-slate-100 rounded-2xl p-3 items-center">
+              <View testID="wearable-metric-sleep" className="flex-1 bg-slate-50 border border-slate-100 rounded-2xl p-2.5 sm:p-3 items-center min-w-0">
                 <View className="flex-row items-center gap-1 mb-1">
                   <Moon size={12} color="#6366f1" />
                   <Text className="text-[10px] font-bold text-slate-500 uppercase">Rest Sleep</Text>
                 </View>
-                <Text testID="wearable-metric-sleep-value" className="text-lg font-black text-slate-900">
-                  {telemetry?.sleepMinutes
+                <Text testID="wearable-metric-sleep-value" className="text-base sm:text-lg font-black text-slate-900" numberOfLines={1}>
+                  {telemetry?.sleepMinutes && telemetry.sleepMinutes > 0
                     ? `${Math.floor(telemetry.sleepMinutes / 60)}h ${telemetry.sleepMinutes % 60}m`
-                    : '7h 55m'}
+                    : '--'}
                 </Text>
-                <View className="flex-row items-center gap-1 mt-0.5">
-                  <Text className="text-[10px] text-indigo-600 font-bold">475 mins</Text>
-                  <Text className="text-[9px] text-slate-400 font-semibold">• Unified</Text>
+                <View className="mt-1 w-full items-center">
+                  <Text numberOfLines={1} className="text-[9px] text-indigo-600 font-bold text-center">
+                    {telemetry?.sleepMinutes && telemetry.sleepMinutes > 0
+                      ? `${telemetry.sleepMinutes} mins`
+                      : 'No data'}
+                  </Text>
                 </View>
               </View>
             </View>
@@ -713,15 +747,15 @@ export const WearablesManagementScreen: React.FC<WearablesManagementScreenProps>
             {/* Multi-Device Protection Active Badge (TEST WEAR-004) */}
             {hasMultipleConnections && (
               <View testID="wearable-multi-device-protection" className="bg-emerald-50 rounded-2xl p-3.5 flex-row items-center gap-3 border border-emerald-200">
-                <View className="w-8 h-8 rounded-xl bg-emerald-100 items-center justify-center">
+                <View className="w-8 h-8 rounded-xl bg-emerald-100 items-center justify-center shrink-0">
                   <ShieldCheck size={18} color="#059669" />
                 </View>
                 <View className="flex-1">
-                  <View className="flex-row items-center gap-2">
+                  <View className="flex-row items-center flex-wrap gap-1.5">
                     <Text className="text-xs font-black text-emerald-900 uppercase tracking-wider">
                       Multi-Device Protection Active
                     </Text>
-                    <View testID="wearable-dedup-badge" className="bg-emerald-600 px-2 py-0.5 rounded-full">
+                    <View testID="wearable-dedup-badge" className="bg-emerald-600 px-2 py-0.5 rounded-full shrink-0">
                       <Text className="text-[9px] font-bold text-white uppercase">Deduplicated</Text>
                     </View>
                   </View>
@@ -734,14 +768,14 @@ export const WearablesManagementScreen: React.FC<WearablesManagementScreenProps>
 
             {/* Open Wearables Data Quality & Malformed Telemetry Protection (TEST ERR-006) */}
             <View testID="wearable-schema-guard" className="bg-indigo-50/70 border border-indigo-100 rounded-2xl p-4 space-y-2.5">
-              <View className="flex-row items-center justify-between">
-                <View className="flex-row items-center gap-2">
+              <View className="flex-row items-center justify-between flex-wrap gap-1.5">
+                <View className="flex-row items-center gap-2 flex-1 min-w-[180px]">
                   <ShieldCheck size={16} color="#2a14b4" />
                   <Text className="text-xs font-black text-[#2a14b4] uppercase tracking-wider">
                     Telemetry Data Quality & Schema Guard
                   </Text>
                 </View>
-                <View className="bg-[#2a14b4] px-2 py-0.5 rounded-full">
+                <View className="bg-[#2a14b4] px-2 py-0.5 rounded-full shrink-0">
                   <Text className="text-[9px] font-bold text-white uppercase">Active</Text>
                 </View>
               </View>
@@ -758,7 +792,7 @@ export const WearablesManagementScreen: React.FC<WearablesManagementScreenProps>
                 </View>
               )}
 
-              <View className="flex-row items-center justify-between pt-2 border-t border-indigo-100/70">
+              <View className="flex-row items-center justify-between flex-wrap gap-2 pt-2 border-t border-indigo-100/70">
                 <View className="flex-row items-center gap-1.5">
                   <CheckCircle2 size={12} color="#16a34a" />
                   <Text className="text-[10px] font-bold text-slate-700">
@@ -806,25 +840,25 @@ export const WearablesManagementScreen: React.FC<WearablesManagementScreenProps>
                 className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-4"
               >
                 {/* Header row */}
-                <View className="flex-row items-center justify-between">
-                  <View className="flex-row items-center gap-3">
-                    <View className="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 items-center justify-center">
+                <View className="flex-row items-start justify-between gap-2">
+                  <View className="flex-row items-center gap-3 flex-1 min-w-0">
+                    <View className="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 items-center justify-center shrink-0">
                       <Watch size={24} color="#2a14b4" />
                     </View>
-                    <View>
-                      <View className="flex-row items-center gap-2">
+                    <View className="flex-1 min-w-0">
+                      <View className="flex-row items-center flex-wrap gap-1.5">
                         <Text testID={`wearable-connected-name-${device.id}`} className="text-base font-black text-slate-900">
                           {device.name}
                         </Text>
                         {device.isStale ? (
-                          <View testID={`wearable-connected-stale-badge-${device.id}`} className="bg-amber-50 border border-amber-300 rounded-full px-2.5 py-0.5 flex-row items-center gap-1 shadow-xs">
+                          <View testID={`wearable-connected-stale-badge-${device.id}`} className="bg-amber-50 border border-amber-300 rounded-full px-2 py-0.5 flex-row items-center gap-1 shadow-xs shrink-0">
                             <AlertTriangle size={10} color="#d97706" />
                             <Text className="text-[10px] font-bold text-amber-800">
-                              Sync delayed (over 12 hours)
+                              Sync delayed
                             </Text>
                           </View>
                         ) : (
-                          <View testID={`wearable-connected-status-${device.id}`} className="bg-emerald-50 border border-emerald-300 rounded-full px-2 py-0.5 flex-row items-center gap-1 shadow-xs">
+                          <View testID={`wearable-connected-status-${device.id}`} className="bg-emerald-50 border border-emerald-300 rounded-full px-2 py-0.5 flex-row items-center gap-1 shadow-xs shrink-0">
                             <CheckCircle2 size={10} color="#10b981" />
                             <Text className="text-[10px] font-bold text-emerald-600">
                               Connected
@@ -832,7 +866,7 @@ export const WearablesManagementScreen: React.FC<WearablesManagementScreenProps>
                           </View>
                         )}
                       </View>
-                      <View className="flex-row items-center gap-1 mt-0.5">
+                      <View className="flex-row items-center flex-wrap gap-1 mt-0.5">
                         <Text className="text-xs text-slate-500 font-medium">
                           {device.model}
                         </Text>
@@ -844,8 +878,8 @@ export const WearablesManagementScreen: React.FC<WearablesManagementScreenProps>
                     </View>
                   </View>
 
-                  {device.batteryLevel && (
-                    <View className="flex-row items-center gap-1 bg-slate-50 px-2.5 py-1 rounded-full border border-slate-200">
+                  {typeof device.batteryLevel === 'number' && (
+                    <View className="flex-row items-center gap-1 bg-slate-50 px-2 py-1 rounded-full border border-slate-200 shrink-0">
                       <Battery size={12} color="#64748b" />
                       <Text className="text-[10px] font-bold text-slate-600">
                         {device.batteryLevel}%
@@ -896,18 +930,18 @@ export const WearablesManagementScreen: React.FC<WearablesManagementScreenProps>
                 </View>
 
                 {/* Action buttons */}
-                <View className="flex-row items-center gap-2 pt-1 border-t border-slate-100">
+                <View className="flex-row flex-wrap items-center gap-2 pt-2 border-t border-slate-100">
                   <TouchableOpacity
                     testID={`wearable-sync-now-${device.id}`}
                     accessibilityLabel="Sync wearable telemetry now"
                     onPress={handleSyncNow}
                     disabled={isSyncingTelemetry}
-                    className="flex-1 bg-[#2a14b4] py-2.5 rounded-xl items-center justify-center flex-row gap-1.5 shadow-xs"
+                    className="flex-1 min-w-[80px] bg-[#2a14b4] py-2 px-2.5 rounded-xl items-center justify-center flex-row gap-1 shadow-xs"
                   >
                     {isSyncingTelemetry ? (
                       <ActivityIndicator size="small" color="#ffffff" />
                     ) : (
-                      <RefreshCw size={13} color="#ffffff" />
+                      <RefreshCw size={12} color="#ffffff" />
                     )}
                     <Text className="text-xs font-bold text-white">
                       {isSyncingTelemetry ? 'Syncing...' : 'Sync Now'}
@@ -917,18 +951,18 @@ export const WearablesManagementScreen: React.FC<WearablesManagementScreenProps>
                   <TouchableOpacity
                     testID={`wearable-reconnect-${device.id}`}
                     onPress={() => handleInitiateConnect(device)}
-                    className="flex-1 bg-slate-100 py-2.5 rounded-xl items-center justify-center flex-row gap-1.5"
+                    className="flex-1 min-w-[80px] bg-slate-100 py-2 px-2.5 rounded-xl items-center justify-center flex-row gap-1"
                   >
-                    <RefreshCw size={13} color="#334155" />
+                    <RefreshCw size={12} color="#334155" />
                     <Text className="text-xs font-bold text-slate-700">Reconnect</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
                     testID={`wearable-permissions-${device.id}`}
                     onPress={() => setSelectedDeviceForPerms(device)}
-                    className="flex-1 bg-indigo-50 border border-indigo-100 py-2.5 rounded-xl items-center justify-center flex-row gap-1.5"
+                    className="flex-1 min-w-[85px] bg-indigo-50 border border-indigo-100 py-2 px-2.5 rounded-xl items-center justify-center flex-row gap-1"
                   >
-                    <Lock size={13} color="#2a14b4" />
+                    <Lock size={12} color="#2a14b4" />
                     <Text className="text-xs font-bold text-[#2a14b4]">Permissions</Text>
                   </TouchableOpacity>
 
@@ -936,7 +970,7 @@ export const WearablesManagementScreen: React.FC<WearablesManagementScreenProps>
                     testID={`wearable-disconnect-${device.id}`}
                     accessibilityLabel={`Disconnect ${device.name}`}
                     onPress={() => handleDisconnectDevice(device)}
-                    className="p-2.5 bg-rose-50 border border-rose-100 rounded-xl items-center justify-center"
+                    className="p-2 bg-rose-50 border border-rose-100 rounded-xl items-center justify-center shrink-0"
                   >
                     <Unlink size={14} color="#e11d48" />
                   </TouchableOpacity>
@@ -958,24 +992,24 @@ export const WearablesManagementScreen: React.FC<WearablesManagementScreenProps>
             <View
               key={device.id}
               testID={`wearable-available-${device.id}`}
-              className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm flex-row items-center justify-between"
+              className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm flex-row items-center justify-between flex-wrap gap-3"
             >
-              <View className="flex-row items-center gap-3 flex-1 mr-3">
-                <View className="w-12 h-12 rounded-2xl bg-slate-100 items-center justify-center">
+              <View className="flex-row items-center gap-3 flex-1 min-w-[180px] mr-2">
+                <View className="w-12 h-12 rounded-2xl bg-slate-100 items-center justify-center shrink-0">
                   <Watch size={24} color="#64748b" />
                 </View>
-                <View className="flex-1">
-                  <View className="flex-row items-center gap-2">
+                <View className="flex-1 min-w-0">
+                  <View className="flex-row items-center flex-wrap gap-1.5">
                     <Text className="text-base font-black text-slate-900">
                       {device.name}
                     </Text>
-                    <View className="bg-slate-100 rounded-full px-2 py-0.5">
+                    <View className="bg-slate-100 rounded-full px-2 py-0.5 shrink-0">
                       <Text className="text-[10px] font-bold text-slate-500">
                         Not connected
                       </Text>
                     </View>
                   </View>
-                  <Text className="text-xs text-slate-500 font-medium">
+                  <Text className="text-xs text-slate-500 font-medium mt-0.5">
                     {device.model || 'Third-party wearable'}
                   </Text>
                 </View>
