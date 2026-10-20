@@ -542,7 +542,7 @@ export const WearablesManagementScreen: React.FC<WearablesManagementScreenProps>
   const availableDevices = devices.filter((d) => d.status !== 'connected');
 
   return (
-    <ScrollView className="flex-1 bg-[#f8f9ff]">
+    <ScrollView className="flex-1 bg-[#f8f9ff]" contentContainerStyle={{ paddingBottom: 120 }}>
       {/* Top App Header */}
       <View className="bg-white border-b border-slate-200 px-5 pt-4 pb-4">
         {/* Navigation Breadcrumb Bar */}
@@ -837,7 +837,7 @@ export const WearablesManagementScreen: React.FC<WearablesManagementScreenProps>
               <View
                 key={device.id}
                 testID={`wearable-connected-${device.id}`}
-                className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-4"
+                className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-4 mb-4"
               >
                 {/* Header row */}
                 <View className="flex-row items-start justify-between gap-2">
@@ -992,7 +992,7 @@ export const WearablesManagementScreen: React.FC<WearablesManagementScreenProps>
             <View
               key={device.id}
               testID={`wearable-available-${device.id}`}
-              className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm flex-row items-center justify-between flex-wrap gap-3"
+              className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm flex-row items-center justify-between flex-wrap gap-3 mb-3.5"
             >
               <View className="flex-row items-center gap-3 flex-1 min-w-[180px] mr-2">
                 <View className="w-12 h-12 rounded-2xl bg-slate-100 items-center justify-center shrink-0">

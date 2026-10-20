@@ -176,6 +176,7 @@ export default function ParentFamilyScreen() {
 
         <ScrollView
           className="flex-1 p-5 space-y-5"
+          contentContainerStyle={{ paddingBottom: 120 }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         >
           {loading ? (

@@ -168,7 +168,7 @@ export default function ParentConditionsRoute() {
           </TouchableOpacity>
         </View>
 
-        <ScrollView className="flex-1 px-5 pt-4 space-y-4" showsVerticalScrollIndicator={false}>
+        <ScrollView className="flex-1 px-5 pt-4 space-y-6" contentContainerStyle={{ paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
           {/* Summary Box */}
           <View className="bg-white rounded-3xl p-5 border border-slate-200 shadow-sm space-y-3">
             <View className="flex-row items-center justify-between">
@@ -203,7 +203,7 @@ export default function ParentConditionsRoute() {
                 <View
                   key={cond.id}
                   testID={`conditions-item-${cond.id}`}
-                  className="bg-white rounded-3xl p-5 border border-slate-200 shadow-xs space-y-3"
+                  className="bg-white rounded-3xl p-5 border border-slate-200 shadow-xs space-y-3 mb-4"
                 >
                   <View className="flex-row justify-between items-start">
                     <View className="flex-1 pr-2">

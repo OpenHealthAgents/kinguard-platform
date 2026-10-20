@@ -295,7 +295,7 @@ export default function ParentClinicalOverviewRoute() {
           </View>
         </View>
 
-        <ScrollView className="flex-1 px-5 pt-4 space-y-4" showsVerticalScrollIndicator={false}>
+        <ScrollView className="flex-1 px-5 pt-4 space-y-6" contentContainerStyle={{ paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
           {/* Parent Summary Card */}
           <View className="bg-white rounded-3xl p-5 border border-slate-200 shadow-sm space-y-4">
             <View className="flex-row items-center gap-3.5">
@@ -410,8 +410,8 @@ export default function ParentClinicalOverviewRoute() {
           </View>
 
           {/* 5 FHIR Clinical Modules */}
-          <View className="space-y-2.5">
-            <View className="flex-row items-center justify-between px-1">
+          <View className="space-y-3">
+            <View className="flex-row items-center justify-between px-1 mb-1">
               <Text className="text-xs font-bold text-slate-400 uppercase tracking-wider">
                 FHIR Clinical Modules
               </Text>
@@ -424,7 +424,7 @@ export default function ParentClinicalOverviewRoute() {
             {/* 1. Profile & Identity */}
             <TouchableOpacity
               onPress={() => router.push(`/(coordinator)/parent/${personId}/profile` as any)}
-              className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-xs flex-row items-center justify-between active:bg-slate-50"
+              className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-xs flex-row items-center justify-between active:bg-slate-50 mb-2.5"
             >
               <View className="flex-row items-center gap-3 flex-1 pr-2">
                 <View className="w-10 h-10 rounded-xl bg-blue-100 items-center justify-center shrink-0">
@@ -443,7 +443,7 @@ export default function ParentClinicalOverviewRoute() {
             {/* 2. Vitals */}
             <TouchableOpacity
               onPress={() => router.push(`/(coordinator)/parent/${personId}/vitals` as any)}
-              className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-xs flex-row items-center justify-between active:bg-slate-50"
+              className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-xs flex-row items-center justify-between active:bg-slate-50 mb-2.5"
             >
               <View className="flex-row items-center gap-3 flex-1 pr-2">
                 <View className="w-10 h-10 rounded-xl bg-rose-100 items-center justify-center shrink-0">
@@ -462,7 +462,7 @@ export default function ParentClinicalOverviewRoute() {
             {/* 3. Conditions */}
             <TouchableOpacity
               onPress={() => router.push(`/(coordinator)/parent/${personId}/conditions` as any)}
-              className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-xs flex-row items-center justify-between active:bg-slate-50"
+              className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-xs flex-row items-center justify-between active:bg-slate-50 mb-2.5"
             >
               <View className="flex-row items-center gap-3 flex-1 pr-2">
                 <View className="w-10 h-10 rounded-xl bg-indigo-100 items-center justify-center shrink-0">
@@ -481,7 +481,7 @@ export default function ParentClinicalOverviewRoute() {
             {/* 4. Medications */}
             <TouchableOpacity
               onPress={() => router.push(`/(coordinator)/parent/${personId}/medications` as any)}
-              className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-xs flex-row items-center justify-between active:bg-slate-50"
+              className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-xs flex-row items-center justify-between active:bg-slate-50 mb-2.5"
             >
               <View className="flex-row items-center gap-3 flex-1 pr-2">
                 <View className="w-10 h-10 rounded-xl bg-amber-100 items-center justify-center shrink-0">
@@ -518,7 +518,7 @@ export default function ParentClinicalOverviewRoute() {
           </View>
 
           {/* Quick Actions Grid */}
-          <View className="space-y-2.5">
+          <View className="space-y-3">
             <Text className="text-xs font-bold text-slate-400 uppercase tracking-wider px-1">
               Clinical & Care Actions
             </Text>

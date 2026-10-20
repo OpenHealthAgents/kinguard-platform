@@ -345,7 +345,7 @@ export const ParentDevicesScreen: React.FC<ParentDevicesScreenProps> = ({ onBack
   const hasMultipleDevices = activeConnections.length > 1;
 
   return (
-    <ScrollView className="flex-1 bg-[#f8f9fa]">
+    <ScrollView className="flex-1 bg-[#f8f9fa]" contentContainerStyle={{ paddingBottom: 120 }}>
       {/* Friendly, Large Top Header */}
       <View className="bg-white px-6 pt-6 pb-5 border-b border-slate-100">
         {onBack && (
@@ -528,7 +528,7 @@ export const ParentDevicesScreen: React.FC<ParentDevicesScreenProps> = ({ onBack
                 <View
                   key={conn.id}
                   testID={`parent-device-connected-${conn.id}`}
-                  className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-5"
+                  className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-5 mb-4"
                 >
                   {/* Watch Header & Status */}
                   <View className="flex-row items-center justify-between">

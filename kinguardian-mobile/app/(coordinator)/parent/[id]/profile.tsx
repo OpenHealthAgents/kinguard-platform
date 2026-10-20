@@ -1,5 +1,5 @@
 import { useContext, useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
   ArrowLeft,
@@ -14,6 +14,7 @@ import { AppContext } from '../../../../src/store/AppContext';
 import { DeviceFrame } from '../../../../src/components/DeviceFrame';
 import { SimulatorControls } from '../../../../src/components/SimulatorControls';
 import { realDataService } from '../../../../src/services/api-client/RealDataService';
+import { Avatar } from '../../../../src/components/ui/Avatar';
 
 export default function ParentFhirProfileRoute() {
   const context = useContext(AppContext);
@@ -39,10 +40,6 @@ export default function ParentFhirProfileRoute() {
       country: 'India',
       location: 'Chennai, India'
     };
-
-  const isDad =
-    person.relation?.toLowerCase().includes('father') ||
-    person.relationship?.toLowerCase().includes('father');
 
   const primaryName = person.name || 'Parent';
 
@@ -143,25 +140,16 @@ export default function ParentFhirProfileRoute() {
           </View>
         </View>
 
-        <ScrollView className="flex-1 px-5 pt-4 space-y-4" showsVerticalScrollIndicator={false}>
+        <ScrollView className="flex-1 px-5 pt-4 space-y-6" contentContainerStyle={{ paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
           {/* Patient Identity Banner */}
           <View className="bg-white rounded-3xl p-5 border border-slate-200 shadow-sm space-y-4">
             <View className="flex-row items-center gap-4">
-              <View className="relative">
-                <Image
-                  source={{
-                    uri:
-                      person.avatarUrl ||
-                      (isDad
-                        ? 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e'
-                        : 'https://images.unsplash.com/photo-1544005313-94ddf0286df2')
-                  }}
-                  className="w-16 h-16 rounded-full border-2 border-blue-200"
-                />
-                <View className="absolute bottom-0 right-0 bg-blue-600 rounded-full p-1 border-2 border-white">
-                  <User size={10} color="#ffffff" />
-                </View>
-              </View>
+              <Avatar
+                url={person.avatarUrl}
+                name={backendProfile?.demographics?.name || primaryName}
+                size="xl"
+                status="online"
+              />
 
               <View className="flex-1 space-y-0.5">
                 <Text className="text-xl font-black text-slate-900">

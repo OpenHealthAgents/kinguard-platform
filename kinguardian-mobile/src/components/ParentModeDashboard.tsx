@@ -389,7 +389,7 @@ export const ParentModeDashboard: React.FC<ParentModeDashboardProps> = ({
 
   return (
     <View className="flex-1">
-      <ScrollView className="flex-1 bg-gradient-to-b from-slate-50 via-white to-slate-50">
+      <ScrollView className="flex-1 bg-gradient-to-b from-slate-50 via-white to-slate-50" contentContainerStyle={{ paddingBottom: 120 }}>
       {/* iOS Native Style Header Bar */}
       <View className="bg-white/80 backdrop-blur-xl pt-8 pb-6 px-6 flex-row justify-between items-center border-b border-slate-100/50 shadow-lg">
         <View>
@@ -916,7 +916,7 @@ export const ParentModeDashboard: React.FC<ParentModeDashboardProps> = ({
                     key={medId}
                     testID={`parent-home-medication-${medId}`}
                     onPress={() => router.push('/(parent)/medicines')}
-                    className={`bg-white rounded-3xl p-4 flex-row items-center justify-between shadow-lg shadow-neutral-100 active:scale-98 border-l-4 ${
+                    className={`bg-white rounded-3xl p-4 flex-row items-center justify-between shadow-lg shadow-neutral-100 active:scale-98 border-l-4 mb-3 ${
                       isTaken ? 'border-[#34c759]' : 'border-[#ff9500]'
                     }`}
                   >
@@ -1073,7 +1073,7 @@ export const ParentModeDashboard: React.FC<ParentModeDashboardProps> = ({
           <TouchableOpacity
             testID="parent-home-documents-card"
             onPress={() => router.push('/(parent)/documents')}
-            className="bg-white rounded-3xl p-4.5 shadow-lg shadow-neutral-100 flex-row items-center justify-between active:scale-98 border-l-4 border-[#ff9500]"
+            className="bg-white rounded-3xl p-4.5 shadow-lg shadow-neutral-100 active:scale-98 border-l-4 border-[#ff9500]"
           >
             <View className="flex-row items-center justify-between">
               <View className="flex-row items-center gap-3.5 flex-1 pr-2">

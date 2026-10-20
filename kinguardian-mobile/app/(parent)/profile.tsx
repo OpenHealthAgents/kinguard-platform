@@ -252,8 +252,8 @@ export default function ParentProfileRoute() {
           contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 40 }}
           showsVerticalScrollIndicator={false}
         >
-          {/* Options List Inset Grouped */}
-          <View className="bg-white border border-neutral-100 rounded-2xl shadow-sm divide-y divide-neutral-200/80 overflow-hidden mb-4">
+          {/* Options List - Separated Cards with Proper Spacing */}
+          <View className="mb-4">
             {profileOptions.map((opt, idx) => {
               const IconComponent = opt.icon;
               return (
@@ -272,25 +272,25 @@ export default function ParentProfileRoute() {
                       context.showToast(`Opening ${opt.title}...`);
                     }
                   }}
-                  className="p-4 flex-row items-center justify-between active:bg-neutral-55"
+                  className="p-4 rounded-2xl border border-neutral-100 bg-white flex-row items-center justify-between shadow-2xs active:bg-neutral-50 mb-2.5"
                 >
-                  <View className="flex-row items-center gap-4">
+                  <View className="flex-row items-center gap-4 flex-1 pr-2">
                     <View
                       className="w-10 h-10 rounded-xl items-center justify-center shrink-0"
                       style={{ backgroundColor: opt.bgColor }}
                     >
                       <IconComponent size={18} color={opt.color} />
                     </View>
-                    <View>
+                    <View className="flex-1">
                       <Text className="text-sm font-bold text-neutral-800 leading-tight">
                         {opt.title}
                       </Text>
-                      <Text className="text-xs text-neutral-400 font-semibold mt-1 leading-snug">
+                      <Text className="text-xs text-neutral-400 font-semibold mt-0.5 leading-snug">
                         {opt.description}
                       </Text>
                     </View>
                   </View>
-                  <ChevronRight size={14} color="#8e8e93" />
+                  <ChevronRight size={14} color="#8e8e93" className="shrink-0" />
                 </TouchableOpacity>
               );
             })}

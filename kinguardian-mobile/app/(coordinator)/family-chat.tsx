@@ -110,7 +110,7 @@ export default function FamilyCommunicationRoute() {
         </View>
 
         {/* Chat Feed */}
-        <ScrollView testID="family-chat-thread" accessibilityLabel="Family chat conversation" className="flex-1 px-5 pt-4 space-y-4">
+        <ScrollView testID="family-chat-thread" accessibilityLabel="Family chat conversation" className="flex-1 px-5 pt-4 space-y-4" contentContainerStyle={{ paddingBottom: 80 }}>
           <View className="space-y-4 pb-28">
             {displayMessages.map((msg, idx) => {
               if (msg.isSystem) {

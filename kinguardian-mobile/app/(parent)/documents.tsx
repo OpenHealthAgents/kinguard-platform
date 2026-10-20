@@ -345,7 +345,7 @@ export default function ParentDocumentsRoute() {
           </TouchableOpacity>
         </View>
 
-        <ScrollView className="flex-1 p-5 space-y-5">
+        <ScrollView className="flex-1 p-5 space-y-5" contentContainerStyle={{ paddingBottom: 120 }}>
           {!isUploaded ? (
             <View className="space-y-5">
               <View className="space-y-3">

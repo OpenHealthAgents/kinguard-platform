@@ -66,7 +66,7 @@ export default function CoordinatorParentsRoute() {
           </TouchableOpacity>
         </View>
 
-        <ScrollView className="flex-1 px-5 pt-4 space-y-4">
+        <ScrollView className="flex-1 px-5 pt-4 space-y-4" contentContainerStyle={{ paddingBottom: 120 }}>
           {(() => {
             const rawParents = context.people.filter(
               (p) =>
@@ -134,7 +134,7 @@ export default function CoordinatorParentsRoute() {
                   router.push(`/(coordinator)/parent/${targetParentId}` as any);
                 }}
                 activeOpacity={0.8}
-                className={`bg-white rounded-3xl p-5 border-2 ${
+                className={`bg-white rounded-3xl p-5 border-2 mb-4 ${
                   isActive ? 'border-[#007aff] shadow-lg shadow-blue-100/50' : 'border-neutral-200 shadow-md'
                 } flex-row items-start gap-4`}
               >

@@ -17,7 +17,7 @@ export const TransparencyInsightScreen: React.FC<TransparencyInsightScreenProps>
   onAskFollowUp
 }) => {
   return (
-    <ScrollView className="flex-1 bg-[#fbfaf7]">
+    <ScrollView className="flex-1 bg-[#fbfaf7]" contentContainerStyle={{ paddingBottom: 120 }}>
       {/* Header Bar */}
       <View className="flex-row items-center justify-between px-5 py-4 border-b border-[#e2dfd9] bg-[#fbfaf7]">
         <TouchableOpacity onPress={onBack} className="p-2 bg-slate-100 rounded-full">

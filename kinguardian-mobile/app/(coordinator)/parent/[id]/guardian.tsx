@@ -123,7 +123,7 @@ export default function GuardianMomentRoute() {
           </TouchableOpacity>
         </View>
 
-        <ScrollView className="flex-1 p-5 space-y-6">
+        <ScrollView className="flex-1 p-5 space-y-6" contentContainerStyle={{ paddingBottom: 120 }}>
           {/* Header Title & Slogan */}
           <View className="space-y-2">
             <View className="flex-row items-center justify-between">

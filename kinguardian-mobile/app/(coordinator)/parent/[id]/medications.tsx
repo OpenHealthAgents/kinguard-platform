@@ -160,7 +160,8 @@ export default function ParentMedicationsRoute() {
 
         <ScrollView
           testID="coordinator-medications-list"
-          className="flex-1 px-5 pt-4 space-y-4"
+          className="flex-1 px-5 pt-4 space-y-6"
+          contentContainerStyle={{ paddingBottom: 120 }}
           showsVerticalScrollIndicator={false}
         >
           {/* Adherence Score Card */}
@@ -235,7 +236,7 @@ export default function ParentMedicationsRoute() {
                   key={med.id}
                   testID={`coordinator-medications-item-${med.id}`}
                   accessibilityLabel={`${med.name}, ${isTaken ? 'taken' : 'scheduled'}`}
-                  className="bg-white rounded-3xl p-5 border border-slate-200 shadow-xs space-y-3"
+                  className="bg-white rounded-3xl p-5 border border-slate-200 shadow-xs space-y-3 mb-4"
                 >
                   <View className="flex-row justify-between items-start">
                     <View className="flex-1 pr-2">

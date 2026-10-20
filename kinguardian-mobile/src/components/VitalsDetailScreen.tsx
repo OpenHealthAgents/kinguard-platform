@@ -135,7 +135,7 @@ export const VitalsDetailScreen: React.FC<VitalsDetailScreenProps> = ({
   const avgVal = Math.round(currentData.reduce((a, b) => a + b, 0) / currentData.length);
 
   return (
-    <ScrollView className="flex-1 bg-[#fbfaf7]">
+    <ScrollView className="flex-1 bg-[#fbfaf7]" contentContainerStyle={{ paddingBottom: 120 }}>
       {/* Header Bar */}
       <View className="flex-row items-center justify-between px-5 py-4 border-b border-[#e2dfd9] bg-[#fbfaf7]">
         <TouchableOpacity onPress={onBack} className="p-2 bg-slate-100 rounded-full">

@@ -566,7 +566,7 @@ export const HealthDashboard: React.FC<HealthDashboardProps> = ({
       </View>
 
       {/* Main Full-Screen ScrollView */}
-      <ScrollView className="flex-1 px-5 pt-4 space-y-5" contentContainerStyle={{ paddingBottom: 120 }}>
+      <ScrollView className="flex-1 px-5 pt-4 space-y-6" contentContainerStyle={{ paddingBottom: 120 }}>
         {/* Hero Greeting & Emergency Summary */}
         <View className="flex-row items-start justify-between">
           <View className="space-y-1 flex-1 mr-3">
@@ -1528,11 +1528,11 @@ export const HealthDashboard: React.FC<HealthDashboardProps> = ({
           </View>
 
           {/* 5 Clinical Module Quick Nav Tiles */}
-          <View className="space-y-2">
+          <View>
             {/* 1. Profile & Identity */}
             <TouchableOpacity
               onPress={() => router.push(`/(coordinator)/parent/${primaryPerson?.id || 'dad'}/profile` as any)}
-              className="bg-slate-50 border border-slate-200/80 rounded-2xl p-3 flex-row items-center justify-between active:bg-slate-100"
+              className="bg-slate-50 border border-slate-200/80 rounded-2xl p-3 flex-row items-center justify-between active:bg-slate-100 mb-2.5"
             >
               <View className="flex-row items-center gap-2.5 flex-1 min-w-0 mr-2">
                 <View className="w-8 h-8 rounded-lg bg-blue-100 items-center justify-center shrink-0">
@@ -1549,7 +1549,7 @@ export const HealthDashboard: React.FC<HealthDashboardProps> = ({
             {/* 2. Vitals */}
             <TouchableOpacity
               onPress={() => router.push(`/(coordinator)/parent/${primaryPerson?.id || 'dad'}/vitals` as any)}
-              className="bg-slate-50 border border-slate-200/80 rounded-2xl p-3 flex-row items-center justify-between active:bg-slate-100"
+              className="bg-slate-50 border border-slate-200/80 rounded-2xl p-3 flex-row items-center justify-between active:bg-slate-100 mb-2.5"
             >
               <View className="flex-row items-center gap-2.5 flex-1 min-w-0 mr-2">
                 <View className="w-8 h-8 rounded-lg bg-rose-100 items-center justify-center shrink-0">
@@ -1566,7 +1566,7 @@ export const HealthDashboard: React.FC<HealthDashboardProps> = ({
             {/* 3. Conditions */}
             <TouchableOpacity
               onPress={() => router.push(`/(coordinator)/parent/${primaryPerson?.id || 'dad'}/conditions` as any)}
-              className="bg-slate-50 border border-slate-200/80 rounded-2xl p-3 flex-row items-center justify-between active:bg-slate-100"
+              className="bg-slate-50 border border-slate-200/80 rounded-2xl p-3 flex-row items-center justify-between active:bg-slate-100 mb-2.5"
             >
               <View className="flex-row items-center gap-2.5 flex-1 min-w-0 mr-2">
                 <View className="w-8 h-8 rounded-lg bg-indigo-100 items-center justify-center shrink-0">
@@ -1583,7 +1583,7 @@ export const HealthDashboard: React.FC<HealthDashboardProps> = ({
             {/* 4. Medications */}
             <TouchableOpacity
               onPress={() => router.push(`/(coordinator)/parent/${primaryPerson?.id || 'dad'}/medications` as any)}
-              className="bg-slate-50 border border-slate-200/80 rounded-2xl p-3 flex-row items-center justify-between active:bg-slate-100"
+              className="bg-slate-50 border border-slate-200/80 rounded-2xl p-3 flex-row items-center justify-between active:bg-slate-100 mb-2.5"
             >
               <View className="flex-row items-center gap-2.5 flex-1 min-w-0 mr-2">
                 <View className="w-8 h-8 rounded-lg bg-amber-100 items-center justify-center shrink-0">
