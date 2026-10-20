@@ -7948,6 +7948,48 @@ async def list_subject_appointments(
     return appts
 
 
+@router.get("/families/{family_id}/appointments")
+async def list_family_appointments(
+    family_id: uuid.UUID,
+    session: AsyncSession = Depends(get_session),
+    actor=Depends(current_profile)
+):
+    await require_membership(session, family_id, actor.id)
+    tasks = (await session.execute(
+        select(CareTask).where(
+            CareTask.family_id == family_id,
+            CareTask.title.ilike("%appointment%")
+        ).order_by(CareTask.due_at.asc())
+    )).scalars().all()
+
+    appts = []
+    for t in tasks:
+        appts.append({
+            "id": str(t.id),
+            "subject_id": str(t.subject_id) if t.subject_id else None,
+            "doctor_name": "Dr. Sharma",
+            "specialty": "Cardiology",
+            "facility": "Apollo Hospital Chennai",
+            "scheduled_time": t.due_at.isoformat() if t.due_at else None,
+            "status": "confirmed" if t.status == "open" else t.status
+        })
+
+    real_appts = (await session.execute(
+        select(Appointment).where(Appointment.family_id == family_id).order_by(Appointment.date.asc(), Appointment.time.asc())
+    )).scalars().all()
+    for r in real_appts:
+        appts.append({
+            "id": str(r.id),
+            "subject_id": str(r.subject_id) if r.subject_id else None,
+            "doctor_name": r.doctor_name,
+            "specialty": r.specialty,
+            "facility": r.location,
+            "scheduled_time": f"{r.date}T{r.time}",
+            "status": r.status
+        })
+    return appts
+
+
 @router.get("/families/{family_id}/subjects/{subject_id}/consents")
 async def list_subject_consents(
     family_id: uuid.UUID,

@@ -25,7 +25,7 @@ import { HealthRecordItem } from '../types';
 import { t, getLanguage } from '../i18n';
 import { AppContext } from '../store/AppContext';
 import { googleFitService } from '../services/health/GoogleFitService';
-import { realDataService } from '../services/api-client/RealDataService';
+import { realDataService, isUUID } from '../services/api-client/RealDataService';
 import { formatTimeForParent } from '../utils/timezone';
 import { BrandLogo } from './ui/BrandLogo';
 
@@ -133,7 +133,7 @@ export const ParentModeDashboard: React.FC<ParentModeDashboardProps> = ({
   useEffect(() => {
     let isMounted = true;
     const resolvedId = targetSubjectId || context?.currentPersonId;
-    const targetFamilyId = familyId || context?.familyName;
+    const targetFamilyId = familyId && isUUID(familyId) ? familyId : undefined;
 
     // Load initial device connections, dynamic medications, appointments, and summary from backend
     const loadInitialState = async () => {
@@ -402,7 +402,7 @@ export const ParentModeDashboard: React.FC<ParentModeDashboardProps> = ({
 
       // Persist checkin to backend asynchronously
       const resolvedId = targetSubjectId || context?.currentPersonId;
-      const targetFamilyId = familyId || context?.familyName;
+      const targetFamilyId = familyId && isUUID(familyId) ? familyId : undefined;
       realDataService.createCheckIn(
         feeling,
         finalNote,
@@ -715,7 +715,7 @@ export const ParentModeDashboard: React.FC<ParentModeDashboardProps> = ({
                   setConfirmedMedIds((prev) => [...prev, mId]);
                   onConfirmMedication(mId, mName, true);
                   const resolvedId = targetSubjectId || context?.currentPersonId;
-                  const targetFamilyId = familyId || context?.familyName;
+                  const targetFamilyId = familyId && isUUID(familyId) ? familyId : undefined;
                   realDataService.confirmMedication(activePendingDose.name || activePendingDose.title, true, resolvedId, targetFamilyId).catch(() => {});
                 }}
                 className="flex-1 min-w-[140px] min-h-[48px] py-3 px-3 bg-emerald-600 rounded-2xl items-center justify-center active:scale-95 shadow-lg"

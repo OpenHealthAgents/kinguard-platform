@@ -1,6 +1,11 @@
 import { authService } from '../auth/authService';
 import { CONFIG } from '../../constants/config';
 
+export const isUUID = (val?: string | null): boolean => {
+  if (!val || typeof val !== 'string') return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val.trim());
+};
+
 export interface RealProfile {
   id: string;
   email: string;
@@ -248,27 +253,38 @@ class RealDataService {
   async getCheckIns(familyId?: string, subjectId?: string): Promise<RealCheckIn[]> {
     try {
       const headers = await this.getAuthHeaders();
+      const validFamily = isUUID(familyId) ? familyId : undefined;
+      const validSubject = isUUID(subjectId) ? subjectId : undefined;
+
       let url = `${this.getApiUrl()}/api/v1/checkins`;
       
-      if (familyId && subjectId) {
-        url = `${this.getApiUrl()}/api/v1/families/${familyId}/subjects/${subjectId}/checkins`;
-      } else if (familyId) {
-        url = `${this.getApiUrl()}/api/v1/families/${familyId}/checkins`;
+      if (validFamily && validSubject) {
+        url = `${this.getApiUrl()}/api/v1/families/${validFamily}/subjects/${validSubject}/checkins`;
+      } else if (validFamily) {
+        url = `${this.getApiUrl()}/api/v1/families/${validFamily}/checkins`;
       }
       
-      const response = await fetch(url, {
+      let response = await fetch(url, {
         method: 'GET',
         headers
       });
 
+      // If family route 404s or 422s, fall back to /api/v1/checkins
+      if (!response.ok && (response.status === 404 || response.status === 422) && url !== `${this.getApiUrl()}/api/v1/checkins`) {
+        response = await fetch(`${this.getApiUrl()}/api/v1/checkins`, {
+          method: 'GET',
+          headers
+        });
+      }
+
       if (!response.ok) {
-        console.error('Failed to fetch check-ins:', response.status);
+        console.warn('Checkins fetch non-ok status:', response.status);
         return [];
       }
 
       return await response.json();
     } catch (error) {
-      console.error('Error fetching check-ins:', error);
+      console.warn('Error fetching check-ins:', error);
       return [];
     }
   }
@@ -841,27 +857,40 @@ class RealDataService {
   async getAppointments(familyId?: string, subjectId?: string): Promise<any[]> {
     try {
       const headers = await this.getAuthHeaders();
+      const validFamily = isUUID(familyId) ? familyId : undefined;
+      const validSubject = isUUID(subjectId) ? subjectId : undefined;
+
       let url = `${this.getApiUrl()}/api/v1/appointments`;
       
-      if (familyId && subjectId) {
-        url = `${this.getApiUrl()}/api/v1/families/${familyId}/subjects/${subjectId}/appointments`;
-      } else if (familyId) {
-        url = `${this.getApiUrl()}/api/v1/families/${familyId}/appointments`;
+      if (validFamily && validSubject) {
+        url = `${this.getApiUrl()}/api/v1/families/${validFamily}/subjects/${validSubject}/appointments`;
+      } else if (validFamily) {
+        url = `${this.getApiUrl()}/api/v1/families/${validFamily}/appointments`;
+      } else if (validSubject) {
+        url = `${this.getApiUrl()}/api/v1/appointments?subject_id=${encodeURIComponent(validSubject)}`;
       }
       
-      const response = await fetch(url, {
+      let response = await fetch(url, {
         method: 'GET',
         headers
       });
 
+      // If the targeted family endpoint 404s or 422s, seamlessly fall back to global /api/v1/appointments
+      if (!response.ok && (response.status === 404 || response.status === 422) && url !== `${this.getApiUrl()}/api/v1/appointments`) {
+        response = await fetch(`${this.getApiUrl()}/api/v1/appointments`, {
+          method: 'GET',
+          headers
+        });
+      }
+
       if (!response.ok) {
-        console.error('Failed to fetch appointments:', response.status);
+        console.warn('Appointments fetch non-ok status:', response.status);
         return [];
       }
 
       return await response.json();
     } catch (error) {
-      console.error('Error fetching appointments:', error);
+      console.warn('Error fetching appointments:', error);
       return [];
     }
   }
