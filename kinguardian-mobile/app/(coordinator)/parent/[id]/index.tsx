@@ -241,7 +241,13 @@ export default function ParentClinicalOverviewRoute() {
         <View className="px-5 py-4 border-b border-slate-200/80 bg-white flex-row items-center justify-between">
           <View className="flex-row items-center gap-3">
             <TouchableOpacity
-              onPress={() => router.push('/(coordinator)')}
+              onPress={() => {
+                if (router.canGoBack()) {
+                  router.back();
+                } else {
+                  router.push('/(coordinator)/parents');
+                }
+              }}
               className="p-2 bg-slate-100 rounded-full active:bg-slate-200"
             >
               <ArrowLeft size={18} color="#1e293b" />

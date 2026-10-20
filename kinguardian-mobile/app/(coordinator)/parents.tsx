@@ -119,13 +119,18 @@ export default function CoordinatorParentsRoute() {
               ? `${personAppt.specialty}, ${personAppt.date} ${personAppt.time}`
               : 'No upcoming visits';
 
+            const targetParentId = p.backendSubjectId || p.id || 'dad';
+
             return (
               <TouchableOpacity
                 key={p.id}
+                testID={`coordinator-parent-card-${p.id}`}
+                accessible={true}
+                accessibilityRole="button"
+                accessibilityLabel={`View ${p.name} clinical overview and health records`}
                 onPress={() => {
-                  context.setCurrentPersonId(p.id);
-                  context.showToast(`Switched active focus to ${p.name}`);
-                  router.push('/(coordinator)');
+                  context.setCurrentPersonId(targetParentId);
+                  router.push(`/(coordinator)/parent/${targetParentId}` as any);
                 }}
                 activeOpacity={0.8}
                 className={`bg-white rounded-3xl p-5 border-2 ${
@@ -204,7 +209,8 @@ export default function CoordinatorParentsRoute() {
                     <TouchableOpacity
                       onPress={(e) => {
                         e.stopPropagation?.();
-                        router.push(`/(coordinator)/parent/${p.id}/profile` as any);
+                        context.setCurrentPersonId(targetParentId);
+                        router.push(`/(coordinator)/parent/${targetParentId}/profile` as any);
                       }}
                       className="bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 px-3 py-1.5 rounded-xl active:scale-95 shadow-sm"
                     >
@@ -213,7 +219,8 @@ export default function CoordinatorParentsRoute() {
                     <TouchableOpacity
                       onPress={(e) => {
                         e.stopPropagation?.();
-                        router.push(`/(coordinator)/parent/${p.id}/vitals` as any);
+                        context.setCurrentPersonId(targetParentId);
+                        router.push(`/(coordinator)/parent/${targetParentId}/vitals` as any);
                       }}
                       className="bg-gradient-to-r from-rose-50 to-rose-100 border border-rose-200 px-3 py-1.5 rounded-xl active:scale-95 shadow-sm"
                     >
@@ -222,7 +229,8 @@ export default function CoordinatorParentsRoute() {
                     <TouchableOpacity
                       onPress={(e) => {
                         e.stopPropagation?.();
-                        router.push(`/(coordinator)/parent/${p.id}/conditions` as any);
+                        context.setCurrentPersonId(targetParentId);
+                        router.push(`/(coordinator)/parent/${targetParentId}/conditions` as any);
                       }}
                       className="bg-gradient-to-r from-indigo-50 to-indigo-100 border border-indigo-200 px-3 py-1.5 rounded-xl active:scale-95 shadow-sm"
                     >
@@ -231,7 +239,8 @@ export default function CoordinatorParentsRoute() {
                     <TouchableOpacity
                       onPress={(e) => {
                         e.stopPropagation?.();
-                        router.push(`/(coordinator)/parent/${p.id}/medications` as any);
+                        context.setCurrentPersonId(targetParentId);
+                        router.push(`/(coordinator)/parent/${targetParentId}/medications` as any);
                       }}
                       className="bg-gradient-to-r from-amber-50 to-amber-100 border border-amber-200 px-3 py-1.5 rounded-xl active:scale-95 shadow-sm"
                     >
@@ -240,7 +249,8 @@ export default function CoordinatorParentsRoute() {
                     <TouchableOpacity
                       onPress={(e) => {
                         e.stopPropagation?.();
-                        router.push(`/(coordinator)/parent/${p.id}/labs` as any);
+                        context.setCurrentPersonId(targetParentId);
+                        router.push(`/(coordinator)/parent/${targetParentId}/labs` as any);
                       }}
                       className="bg-gradient-to-r from-emerald-50 to-emerald-100 border border-emerald-200 px-3 py-1.5 rounded-xl active:scale-95 shadow-sm"
                     >
