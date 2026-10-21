@@ -134,18 +134,18 @@ export default function ParentVoiceRoute() {
         {/* Header */}
         <View className="bg-white pt-7 pb-5 px-6 border-b border-slate-200">
           <View className="flex-row items-center justify-between">
-            <View>
-              <View className="flex-row items-center gap-2">
+            <View className="flex-1 pr-3">
+              <View className="flex-row items-center gap-2 flex-wrap">
                 <Text className="text-xl font-black text-slate-900 tracking-tight">Ask KinGuardian</Text>
-                <View className="bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-200">
+                <View className="bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-200 shrink-0">
                   <Text className="text-[10px] font-black text-emerald-800">Parent Voice & Chat</Text>
                 </View>
               </View>
-              <Text className="text-xs text-slate-500 font-medium mt-1">
+              <Text className="text-xs text-slate-500 font-medium mt-1" numberOfLines={1}>
                 Simple, parent-friendly medical assistant for {userName}
               </Text>
             </View>
-            <View className="w-10 h-10 rounded-full bg-emerald-50 items-center justify-center border border-emerald-100 shadow-xs">
+            <View className="w-10 h-10 rounded-full bg-emerald-50 items-center justify-center border border-emerald-100 shadow-xs shrink-0">
               <Sparkles size={18} color="#059669" fill="#059669" />
             </View>
           </View>

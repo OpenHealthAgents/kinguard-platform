@@ -191,20 +191,20 @@ export default function ParentFamilyScreen() {
               {/* Primary Membership Verification Card */}
               <View className="bg-white rounded-3xl p-6 border border-neutral-100 shadow-sm space-y-5">
                 <View className="flex-row items-start justify-between">
-                  <View className="flex-row items-center gap-3.5">
-                    <View className="w-12 h-12 rounded-2xl bg-[#eff6ff] items-center justify-center">
+                  <View className="flex-row items-center gap-3.5 flex-1 pr-2">
+                    <View className="w-12 h-12 rounded-2xl bg-[#eff6ff] items-center justify-center shrink-0">
                       <ShieldCheck size={26} color="#007aff" />
                     </View>
-                    <View>
-                      <Text className="text-base font-bold text-neutral-900 leading-tight">
+                    <View className="flex-1">
+                      <Text className="text-base font-bold text-neutral-900 leading-tight" numberOfLines={1}>
                         {familyName}
                       </Text>
-                      <Text className="text-xs text-neutral-500 font-medium mt-1">
+                      <Text className="text-xs text-neutral-500 font-medium mt-1" numberOfLines={1}>
                         Connected Care Network
                       </Text>
                     </View>
                   </View>
-                  <View className="bg-emerald-50 px-3 py-1 rounded-full flex-row items-center gap-1 border border-emerald-100">
+                  <View className="bg-emerald-50 px-3 py-1 rounded-full flex-row items-center gap-1 border border-emerald-100 shrink-0">
                     <CheckCircle2 size={12} color="#34c759" />
                     <Text className="text-[10px] font-bold text-[#34c759] uppercase">
                       Active
@@ -216,7 +216,7 @@ export default function ParentFamilyScreen() {
                 <View className="bg-neutral-50 rounded-2xl p-4 space-y-2.5 border border-neutral-100">
                   <View className="flex-row items-center justify-between">
                     <Text className="text-xs font-semibold text-neutral-500">Membership Role</Text>
-                    <View className="bg-blue-100/80 px-2.5 py-0.5 rounded-full">
+                    <View className="bg-blue-100/80 px-2.5 py-0.5 rounded-full shrink-0">
                       <Text className="text-xs font-bold text-[#007aff] uppercase">
                         {roleName}
                       </Text>
@@ -239,8 +239,10 @@ export default function ParentFamilyScreen() {
                 </View>
 
                 <View className="flex-row items-center gap-2 pt-1">
-                  <BadgeCheck size={16} color="#34c759" />
-                  <Text className="text-xs text-neutral-600 font-medium">
+                  <View className="shrink-0">
+                    <BadgeCheck size={16} color="#34c759" />
+                  </View>
+                  <Text className="text-xs text-neutral-600 font-medium flex-1">
                     You are connected as an active parent with full healthcare telemetry rights.
                   </Text>
                 </View>
@@ -305,20 +307,20 @@ export default function ParentFamilyScreen() {
                   {verifData?.familyMembers && verifData.familyMembers.length > 0 ? (
                     verifData.familyMembers.map((m) => (
                       <View key={m.id} className="p-4 flex-row items-center justify-between">
-                        <View className="flex-row items-center gap-3">
-                          <View className="w-10 h-10 rounded-full bg-neutral-100 items-center justify-center">
+                        <View className="flex-row items-center gap-3 flex-1 pr-2">
+                          <View className="w-10 h-10 rounded-full bg-neutral-100 items-center justify-center shrink-0">
                             <Users size={18} color="#8e8e93" />
                           </View>
-                          <View>
-                            <Text className="text-xs font-bold text-neutral-800">
+                          <View className="flex-1">
+                            <Text className="text-xs font-bold text-neutral-800" numberOfLines={1}>
                               {m.display_name} {m.profile_id === verifData?.profile?.id ? '(You)' : ''}
                             </Text>
-                            <Text className="text-[10px] text-neutral-400 font-medium">
+                            <Text className="text-[10px] text-neutral-400 font-medium" numberOfLines={1}>
                               {m.email || 'Family Member'}
                             </Text>
                           </View>
                         </View>
-                        <View className="bg-blue-50 px-2.5 py-1 rounded-full">
+                        <View className="bg-blue-50 px-2.5 py-1 rounded-full shrink-0">
                           <Text className="text-[9px] font-bold text-[#007aff] uppercase">
                             {m.role}
                           </Text>
@@ -328,20 +330,20 @@ export default function ParentFamilyScreen() {
                   ) : context?.people && context.people.length > 0 ? (
                     context.people.map((p) => (
                       <View key={p.id} className="p-4 flex-row items-center justify-between">
-                        <View className="flex-row items-center gap-3">
-                          <View className="w-10 h-10 rounded-full bg-blue-50 items-center justify-center">
+                        <View className="flex-row items-center gap-3 flex-1 pr-2">
+                          <View className="w-10 h-10 rounded-full bg-blue-50 items-center justify-center shrink-0">
                             <Users size={18} color="#007aff" />
                           </View>
-                          <View>
-                            <Text className="text-xs font-bold text-neutral-800">
+                          <View className="flex-1">
+                            <Text className="text-xs font-bold text-neutral-800" numberOfLines={1}>
                               {p.name} {p.id === context?.currentUser?.id ? '(You)' : ''}
                             </Text>
-                            <Text className="text-[10px] text-neutral-400 font-medium">
+                            <Text className="text-[10px] text-neutral-400 font-medium" numberOfLines={1}>
                               {p.relationship || p.role || 'Care Subject'}
                             </Text>
                           </View>
                         </View>
-                        <View className="bg-blue-50 px-2.5 py-1 rounded-full">
+                        <View className="bg-blue-50 px-2.5 py-1 rounded-full shrink-0">
                           <Text className="text-[9px] font-bold text-[#007aff] uppercase">
                             {p.role || 'Member'}
                           </Text>
@@ -350,20 +352,20 @@ export default function ParentFamilyScreen() {
                     ))
                   ) : (
                     <View className="p-4 flex-row items-center justify-between">
-                      <View className="flex-row items-center gap-3">
-                        <View className="w-10 h-10 rounded-full bg-emerald-50 items-center justify-center">
+                      <View className="flex-row items-center gap-3 flex-1 pr-2">
+                        <View className="w-10 h-10 rounded-full bg-emerald-50 items-center justify-center shrink-0">
                           <Users size={18} color="#34c759" />
                         </View>
-                        <View>
-                          <Text className="text-xs font-bold text-neutral-800">
+                        <View className="flex-1">
+                          <Text className="text-xs font-bold text-neutral-800" numberOfLines={1}>
                             {verifData?.profile?.display_name || context?.currentUser?.name || 'Member'} (You)
                           </Text>
-                          <Text className="text-[10px] text-neutral-400 font-medium">
+                          <Text className="text-[10px] text-neutral-400 font-medium" numberOfLines={1}>
                             {verifData?.profile?.email || context?.currentUser?.email || 'Connected Member'}
                           </Text>
                         </View>
                       </View>
-                      <View className="bg-emerald-50 px-2.5 py-1 rounded-full">
+                      <View className="bg-emerald-50 px-2.5 py-1 rounded-full shrink-0">
                         <Text className="text-[9px] font-bold text-[#34c759] uppercase">
                           {roleName}
                         </Text>

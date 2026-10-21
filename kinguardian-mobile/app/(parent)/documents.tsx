@@ -446,11 +446,11 @@ export default function ParentDocumentsRoute() {
                         <View
                           testID={`parent-documents-status-${doc.id || index}`}
                           accessibilityLabel={`Document status: ${doc.status || 'active'}`}
-                          className="bg-emerald-50 border border-emerald-100 px-2.5 py-0.5 rounded-full"
+                          className="bg-emerald-50 border border-emerald-100 px-2.5 py-0.5 rounded-full shrink-0"
                         >
-                          <Text className="text-[9px] font-bold text-[#34c759] uppercase">
+                          <Text className="text-[9px] font-bold text-[#34c759] uppercase" numberOfLines={1}>
                             {doc.category === 'Prescription' || doc.classification === 'Prescription'
-                              ? `In Review by ${coordName}`
+                              ? 'In Review'
                               : 'Active'}
                           </Text>
                         </View>

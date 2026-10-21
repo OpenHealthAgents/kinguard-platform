@@ -420,13 +420,13 @@ export default function ParentProfileRoute() {
 
                 {/* Coordinator */}
                 <View className="bg-white border border-neutral-100 rounded-xl p-4 flex-row justify-between items-center">
-                  <View className="space-y-0.5">
-                    <Text className="text-xs font-bold text-neutral-800">{coordName} (Coordinator)</Text>
-                    <Text className="text-[10px] text-neutral-400 font-semibold">
+                  <View className="space-y-0.5 flex-1 pr-2">
+                    <Text className="text-xs font-bold text-neutral-800" numberOfLines={1}>{coordName} (Coordinator)</Text>
+                    <Text className="text-[10px] text-neutral-400 font-semibold" numberOfLines={1}>
                       Primary Coordinator
                     </Text>
                   </View>
-                  <View className="bg-blue-50 px-3 py-1 rounded-full">
+                  <View className="bg-blue-50 px-3 py-1 rounded-full shrink-0">
                     <Text className="text-[10px] font-bold text-[#007aff] uppercase">
                       Full Access
                     </Text>
@@ -436,13 +436,13 @@ export default function ParentProfileRoute() {
                 {/* Other members dynamically */}
                 {context.people && context.people.filter(p => p.name !== coordName && p.name !== context.currentUser?.name).map((person) => (
                   <View key={person.id} className="bg-white border border-neutral-100 rounded-xl p-4 flex-row justify-between items-center">
-                    <View className="space-y-0.5">
-                      <Text className="text-xs font-bold text-neutral-800">{person.name} ({person.relationship || person.role || 'Member'})</Text>
-                      <Text className="text-[10px] text-neutral-400 font-semibold">
+                    <View className="space-y-0.5 flex-1 pr-2">
+                      <Text className="text-xs font-bold text-neutral-800" numberOfLines={1}>{person.name} ({person.relationship || person.role || 'Member'})</Text>
+                      <Text className="text-[10px] text-neutral-400 font-semibold" numberOfLines={1}>
                         Care Circle · {person.location || 'Connected'}
                       </Text>
                     </View>
-                    <View className="bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100">
+                    <View className="bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100 shrink-0">
                       <Text className="text-[10px] font-bold text-[#34c759] uppercase">
                         Care + Summary
                       </Text>

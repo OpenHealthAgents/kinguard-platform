@@ -404,22 +404,22 @@ export const ParentDevicesScreen: React.FC<ParentDevicesScreenProps> = ({ onBack
             {/* Today's Activity & Rest from wearable_data */}
             <View className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-5">
               <View className="flex-row items-center justify-between pb-3.5 border-b border-slate-100">
-                <View className="flex-row items-center gap-2">
-                  <View className="w-8 h-8 rounded-xl bg-indigo-50 items-center justify-center">
+                <View className="flex-row items-center gap-2 flex-1 pr-2">
+                  <View className="w-8 h-8 rounded-xl bg-indigo-50 items-center justify-center shrink-0">
                     <Activity size={16} color="#2a14b4" />
                   </View>
-                  <View>
-                    <Text className="text-sm font-black text-slate-900">Today's Activity & Rest</Text>
-                    <Text className="text-[10px] text-slate-400 font-medium">
+                  <View className="flex-1">
+                    <Text className="text-sm font-black text-slate-900" numberOfLines={1}>Today's Activity & Rest</Text>
+                    <Text className="text-[10px] text-slate-400 font-medium" numberOfLines={1}>
                       Synced from {healthSummary?.source === 'health_connect' ? 'Google Fit / Health Connect' : healthSummary?.source || 'Wearable'}
                     </Text>
                   </View>
                 </View>
-                <View className="flex-row items-center gap-2">
+                <View className="flex-row items-center gap-2 shrink-0">
                   <TouchableOpacity
                     onPress={handleSyncNow}
                     disabled={isSyncing}
-                    className="bg-[#2a14b4] px-3.5 py-2 rounded-xl flex-row items-center gap-1.5 shadow-xs"
+                    className="bg-[#2a14b4] px-3.5 py-2 rounded-xl flex-row items-center gap-1.5 shadow-xs shrink-0"
                   >
                     {isSyncing ? (
                       <ActivityIndicator size="small" color="#ffffff" />
@@ -430,7 +430,7 @@ export const ParentDevicesScreen: React.FC<ParentDevicesScreenProps> = ({ onBack
                       {isSyncing ? 'Syncing...' : 'Sync Now'}
                     </Text>
                   </TouchableOpacity>
-                  <View className="bg-emerald-50 border border-emerald-200 rounded-full px-2.5 py-0.5 flex-row items-center gap-1">
+                  <View className="bg-emerald-50 border border-emerald-200 rounded-full px-2.5 py-0.5 flex-row items-center gap-1 shrink-0">
                     <ShieldCheck size={11} color="#059669" />
                     <Text className="text-[10px] font-bold text-emerald-700">Connected</Text>
                   </View>
@@ -438,53 +438,53 @@ export const ParentDevicesScreen: React.FC<ParentDevicesScreenProps> = ({ onBack
               </View>
 
               {/* 3 Live Google Fit Metrics: Steps, Resting Heart Rate, Sleep Duration */}
-              <View className="flex-row gap-3">
+              <View className="flex-row gap-2">
                 {/* Steps */}
-                <View className="flex-1 bg-slate-50 border border-slate-100 rounded-2xl p-3.5 items-center">
+                <View className="flex-1 bg-slate-50 border border-slate-100 rounded-2xl p-2.5 items-center">
                   <View className="flex-row items-center gap-1 mb-1">
                     <Flame size={12} color="#f97316" />
                     <Text className="text-[10px] font-bold text-slate-500 uppercase">Steps</Text>
                   </View>
-                  <Text className="text-lg font-black text-slate-900">
+                  <Text className="text-base font-black text-slate-900" numberOfLines={1}>
                     {healthSummary && typeof healthSummary.steps === 'number' ? healthSummary.steps.toLocaleString() : '0'}
                   </Text>
-                  <View className="flex-row items-center gap-1 mt-0.5">
-                    <Text className="text-[10px] text-emerald-600 font-bold">Live Moving</Text>
-                    <Text className="text-[9px] text-slate-400 font-semibold">• Google Fit</Text>
+                  <View className="items-center mt-0.5">
+                    <Text className="text-[10px] text-emerald-600 font-bold" numberOfLines={1}>Live Moving</Text>
+                    <Text className="text-[9px] text-slate-400 font-semibold" numberOfLines={1}>Google Fit</Text>
                   </View>
                 </View>
 
                 {/* Resting Heart Rate */}
-                <View className="flex-1 bg-slate-50 border border-slate-100 rounded-2xl p-3.5 items-center">
+                <View className="flex-1 bg-slate-50 border border-slate-100 rounded-2xl p-2.5 items-center">
                   <View className="flex-row items-center gap-1 mb-1">
                     <Heart size={12} color="#e11d48" />
                     <Text className="text-[10px] font-bold text-slate-500 uppercase">Resting HR</Text>
                   </View>
-                  <Text className="text-lg font-black text-slate-900">
+                  <Text className="text-base font-black text-slate-900" numberOfLines={1}>
                     {healthSummary?.heart_rate ? `${healthSummary.heart_rate} bpm` : '72 bpm'}
                   </Text>
-                  <View className="flex-row items-center gap-1 mt-0.5">
-                    <Text className="text-[10px] text-emerald-600 font-bold">Real-time</Text>
-                    <Text className="text-[9px] text-slate-400 font-semibold">• Live</Text>
+                  <View className="items-center mt-0.5">
+                    <Text className="text-[10px] text-emerald-600 font-bold" numberOfLines={1}>Real-time</Text>
+                    <Text className="text-[9px] text-slate-400 font-semibold" numberOfLines={1}>Live</Text>
                   </View>
                 </View>
 
                 {/* Sleep Duration */}
-                <View className="flex-1 bg-slate-50 border border-slate-100 rounded-2xl p-3.5 items-center">
+                <View className="flex-1 bg-slate-50 border border-slate-100 rounded-2xl p-2.5 items-center">
                   <View className="flex-row items-center gap-1 mb-1">
                     <Moon size={12} color="#6366f1" />
                     <Text className="text-[10px] font-bold text-slate-500 uppercase">Rest Sleep</Text>
                   </View>
-                  <Text className="text-lg font-black text-slate-900">
+                  <Text className="text-base font-black text-slate-900" numberOfLines={1}>
                     {healthSummary?.sleep_minutes
                       ? `${Math.floor(healthSummary.sleep_minutes / 60)}h ${healthSummary.sleep_minutes % 60}m`
                       : '7h 45m'}
                   </Text>
-                  <View className="flex-row items-center gap-1 mt-0.5">
-                    <Text className="text-[10px] text-indigo-600 font-bold">
+                  <View className="items-center mt-0.5">
+                    <Text className="text-[10px] text-indigo-600 font-bold" numberOfLines={1}>
                       {healthSummary?.sleep_minutes ? `${healthSummary.sleep_minutes} mins` : '465 mins'}
                     </Text>
-                    <Text className="text-[9px] text-slate-400 font-semibold">• Unified</Text>
+                    <Text className="text-[9px] text-slate-400 font-semibold" numberOfLines={1}>Unified</Text>
                   </View>
                 </View>
               </View>
@@ -518,16 +518,16 @@ export const ParentDevicesScreen: React.FC<ParentDevicesScreenProps> = ({ onBack
                 >
                   {/* Watch Header & Status */}
                   <View className="flex-row items-center justify-between">
-                    <View className="flex-row items-center gap-4 flex-1">
-                      <View className="w-16 h-16 rounded-2xl bg-indigo-50 border border-indigo-100 items-center justify-center">
+                    <View className="flex-row items-center gap-4 flex-1 pr-2">
+                      <View className="w-16 h-16 rounded-2xl bg-indigo-50 border border-indigo-100 items-center justify-center shrink-0">
                         <Watch size={34} color="#2a14b4" />
                       </View>
                       <View className="flex-1">
-                        <Text testID={`parent-device-connected-name-${conn.id}`} className="text-xl font-black text-slate-900">
+                        <Text testID={`parent-device-connected-name-${conn.id}`} className="text-xl font-black text-slate-900" numberOfLines={1}>
                           {displayName}
                         </Text>
                         {conn.device_id && (
-                          <Text className="text-xs text-slate-400 font-medium mt-0.5">
+                          <Text className="text-xs text-slate-400 font-medium mt-0.5" numberOfLines={1}>
                             ID: {conn.device_id}
                           </Text>
                         )}
@@ -552,7 +552,7 @@ export const ParentDevicesScreen: React.FC<ParentDevicesScreenProps> = ({ onBack
                     </View>
 
                     <View
-                      className={`w-10 h-10 rounded-full items-center justify-center ${
+                      className={`w-10 h-10 rounded-full items-center justify-center shrink-0 ${
                         isStale ? 'bg-amber-50' : 'bg-emerald-50'
                       }`}
                     >

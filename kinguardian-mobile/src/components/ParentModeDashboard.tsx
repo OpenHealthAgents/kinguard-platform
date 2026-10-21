@@ -475,7 +475,7 @@ export const ParentModeDashboard: React.FC<ParentModeDashboardProps> = ({
       <ScrollView className="flex-1 bg-gradient-to-b from-slate-50 via-white to-slate-50" contentContainerStyle={{ paddingBottom: 120 }}>
       {/* iOS Native Style Header Bar */}
       <View className="bg-white/80 backdrop-blur-xl pt-8 pb-6 px-6 flex-row justify-between items-center border-b border-slate-100/50 shadow-lg">
-        <View>
+        <View className="flex-1 pr-3">
           <View className="flex-row items-center gap-2 mb-1">
             <BrandLogo size="sm" testID="parent-brand-logo" />
             <View className="bg-gradient-to-r from-emerald-500 to-emerald-600 px-3 py-1 rounded-full">
@@ -484,14 +484,14 @@ export const ParentModeDashboard: React.FC<ParentModeDashboardProps> = ({
               </Text>
             </View>
           </View>
-          <Text className="text-2xl font-bold text-slate-900 tracking-tight">
+          <Text className="text-2xl font-bold text-slate-900 tracking-tight" numberOfLines={1}>
             {getParentGreeting()}
           </Text>
-          <Text className="text-sm text-slate-500 mt-1">
+          <Text className="text-sm text-slate-500 mt-1" numberOfLines={1}>
             Connected with {coordName}{parentSummary?.demographics?.location ? ` • ${parentSummary.demographics.location}` : ''}
           </Text>
         </View>
-        <View className="flex-row items-center gap-3">
+        <View className="flex-row items-center gap-3 shrink-0">
           <TouchableOpacity
             accessible={true}
             accessibilityRole="button"
@@ -816,13 +816,13 @@ export const ParentModeDashboard: React.FC<ParentModeDashboardProps> = ({
 
           <View className="bg-white rounded-3xl p-5 border border-slate-200 shadow-sm space-y-3.5">
             <View className="flex-row items-center justify-between pb-2.5 border-b border-slate-100">
-              <View className="flex-row items-center gap-2">
-                <View className={`w-8 h-8 rounded-xl ${telemetry.isConnected ? 'bg-emerald-50' : 'bg-slate-100'} items-center justify-center`}>
+              <View className="flex-row items-center gap-2 flex-1 pr-2">
+                <View className={`w-8 h-8 rounded-xl ${telemetry.isConnected ? 'bg-emerald-50' : 'bg-slate-100'} items-center justify-center shrink-0`}>
                   <Activity size={16} color={telemetry.isConnected ? '#059669' : '#64748b'} />
                 </View>
-                <View>
-                  <Text className="text-xs font-black text-slate-900">Today's Activity & Rest</Text>
-                  <Text className="text-[10px] text-slate-400 font-medium">
+                <View className="flex-1">
+                  <Text className="text-xs font-black text-slate-900" numberOfLines={1}>Today's Activity & Rest</Text>
+                  <Text className="text-[10px] text-slate-400 font-medium" numberOfLines={1}>
                     {telemetry.isConnected ? 'Updates while app is open • ' : ''}
                     <Text className={`font-bold ${telemetry.isConnected ? 'text-emerald-700' : 'text-slate-500'}`}>
                       {telemetry.isConnected ? telemetry.provenance : 'No device connected'}
@@ -830,7 +830,7 @@ export const ParentModeDashboard: React.FC<ParentModeDashboardProps> = ({
                   </Text>
                 </View>
               </View>
-              <View className={`${telemetry.isConnected ? 'bg-emerald-50 border-emerald-300' : 'bg-slate-100 border-slate-200'} border rounded-full px-2.5 py-0.5 flex-row items-center gap-1.5 shadow-xs`}>
+              <View className={`${telemetry.isConnected ? 'bg-emerald-50 border-emerald-300' : 'bg-slate-100 border-slate-200'} border rounded-full px-2.5 py-0.5 flex-row items-center gap-1.5 shadow-xs shrink-0`}>
                 <View className={`w-1.5 h-1.5 rounded-full ${telemetry.isConnected ? 'bg-emerald-500' : 'bg-slate-400'}`} />
                 <Text className={`text-[9px] font-bold uppercase ${telemetry.isConnected ? 'text-emerald-700' : 'text-slate-500'}`}>
                   {telemetry.isConnected ? 'SYNC ACTIVE' : 'NOT CONNECTED'}
@@ -840,24 +840,26 @@ export const ParentModeDashboard: React.FC<ParentModeDashboardProps> = ({
 
             {/* Live Telemetry Display: Steps, Heart Rate, Sleep */}
             <View className="bg-slate-50 border border-slate-100 rounded-2xl p-4 space-y-3">
-              <View className="flex-row items-center justify-between">
-                <View className="flex-row items-center gap-3">
-                  <View className="w-12 h-12 rounded-2xl bg-orange-50 border border-orange-100 items-center justify-center">
+              <View className="flex-row items-center justify-between gap-2">
+                <View className="flex-row items-center gap-3 flex-1 pr-2">
+                  <View className="w-12 h-12 rounded-2xl bg-orange-50 border border-orange-100 items-center justify-center shrink-0">
                     <Flame size={22} color="#f97316" />
                   </View>
-                  <View>
+                  <View className="flex-1">
                     <Text className="text-xs font-bold text-slate-500 uppercase tracking-wider">
                       Today's Steps
                     </Text>
                     <Text className="text-2xl font-black text-slate-900 mt-0.5">
                       {telemetry.isConnected && telemetry.steps > 0 ? telemetry.steps.toLocaleString() : '--'}
                     </Text>
-                    <View className="flex-row items-center gap-1 mt-0.5">
-                      <View className={`w-2 h-2 rounded-full ${telemetry.isConnected ? 'bg-emerald-500' : 'bg-slate-400'}`} />
-                      <Text className={`text-[11px] font-bold ${telemetry.isConnected ? 'text-emerald-600' : 'text-slate-500'}`}>
+                    <View className="flex-row items-center gap-1 mt-0.5 flex-wrap">
+                      <View className={`w-2 h-2 rounded-full ${telemetry.isConnected ? 'bg-emerald-500' : 'bg-slate-400'} shrink-0`} />
+                      <Text className={`text-[11px] font-bold ${telemetry.isConnected ? 'text-emerald-600' : 'text-slate-500'}`} numberOfLines={1}>
                         {telemetry.isConnected ? 'Live • Auto Synced' : 'Not Connected'}
                       </Text>
-                      <Text className="text-[10px] text-slate-400 font-semibold">• {activeDevice.name}</Text>
+                      {activeDevice.name && (
+                        <Text className="text-[10px] text-slate-400 font-semibold" numberOfLines={1}>• {activeDevice.name}</Text>
+                      )}
                     </View>
                   </View>
                 </View>
@@ -865,7 +867,7 @@ export const ParentModeDashboard: React.FC<ParentModeDashboardProps> = ({
                 <TouchableOpacity
                   onPress={handleForceAutoSync}
                   disabled={isSyncingFit}
-                  className={`${telemetry.isConnected ? 'bg-[#2a14b4]' : 'bg-[#007aff]'} px-4 py-2.5 rounded-xl flex-row items-center gap-1.5 shadow-xs`}
+                  className={`${telemetry.isConnected ? 'bg-[#2a14b4]' : 'bg-[#007aff]'} px-3.5 py-2.5 rounded-xl flex-row items-center gap-1.5 shadow-xs shrink-0`}
                 >
                   {isSyncingFit ? (
                     <ActivityIndicator size="small" color="#ffffff" />
@@ -883,24 +885,24 @@ export const ParentModeDashboard: React.FC<ParentModeDashboardProps> = ({
               {/* Heart Rate and Sleep pills */}
               <View className="flex-row gap-2 pt-2 border-t border-slate-200/60">
                 <View className="flex-1 bg-white border border-slate-200/70 rounded-xl p-2.5 flex-row items-center gap-2">
-                  <View className="w-8 h-8 rounded-lg bg-rose-50 items-center justify-center">
+                  <View className="w-8 h-8 rounded-lg bg-rose-50 items-center justify-center shrink-0">
                     <Heart size={15} color="#e11d48" />
                   </View>
-                  <View>
-                    <Text className="text-[10px] font-bold text-slate-400 uppercase">Resting HR</Text>
-                    <Text className="text-sm font-black text-slate-900">
+                  <View className="flex-1">
+                    <Text className="text-[10px] font-bold text-slate-400 uppercase" numberOfLines={1}>Resting HR</Text>
+                    <Text className="text-sm font-black text-slate-900" numberOfLines={1}>
                       {telemetry.isConnected && telemetry.heartRate > 0 ? `${telemetry.heartRate} bpm` : '--'}
                     </Text>
                   </View>
                 </View>
 
                 <View className="flex-1 bg-white border border-slate-200/70 rounded-xl p-2.5 flex-row items-center gap-2">
-                  <View className="w-8 h-8 rounded-lg bg-indigo-50 items-center justify-center">
+                  <View className="w-8 h-8 rounded-lg bg-indigo-50 items-center justify-center shrink-0">
                     <Moon size={15} color="#6366f1" />
                   </View>
-                  <View>
-                    <Text className="text-[10px] font-bold text-slate-400 uppercase">Rest Sleep</Text>
-                    <Text className="text-sm font-black text-slate-900">
+                  <View className="flex-1">
+                    <Text className="text-[10px] font-bold text-slate-400 uppercase" numberOfLines={1}>Rest Sleep</Text>
+                    <Text className="text-sm font-black text-slate-900" numberOfLines={1}>
                       {telemetry.isConnected && telemetry.sleepMinutes > 0
                         ? `${Math.floor(telemetry.sleepMinutes / 60)}h ${telemetry.sleepMinutes % 60}m`
                         : '--'}
@@ -913,13 +915,13 @@ export const ParentModeDashboard: React.FC<ParentModeDashboardProps> = ({
             {/* Auto-Sync Status Bar & Navigation */}
             <View className="space-y-2 pt-1">
               <View className={`${telemetry.isConnected ? 'bg-emerald-50/70 border-emerald-200/60' : 'bg-slate-50 border-slate-200'} border rounded-xl py-2 px-3 flex-row items-center justify-between`}>
-                <View className="flex-row items-center gap-2">
-                  <CheckCircle2 size={14} color={telemetry.isConnected ? '#059669' : '#64748b'} />
-                  <Text className={`text-[11px] font-semibold ${telemetry.isConnected ? 'text-emerald-900' : 'text-slate-600'}`}>
+                <View className="flex-row items-center gap-2 flex-1 pr-2">
+                  <CheckCircle2 size={14} color={telemetry.isConnected ? '#059669' : '#64748b'} className="shrink-0" />
+                  <Text className={`text-[11px] font-semibold flex-1 ${telemetry.isConnected ? 'text-emerald-900' : 'text-slate-600'}`} numberOfLines={1}>
                     {lastAutoSyncTime}
                   </Text>
                 </View>
-                <View className={`${telemetry.isConnected ? 'bg-emerald-100/80' : 'bg-slate-200'} px-2.5 py-0.5 rounded-lg flex-row items-center gap-1`}>
+                <View className={`${telemetry.isConnected ? 'bg-emerald-100/80' : 'bg-slate-200'} px-2.5 py-0.5 rounded-lg flex-row items-center gap-1 shrink-0`}>
                   <Text className={`text-[10px] font-bold ${telemetry.isConnected ? 'text-emerald-900' : 'text-slate-600'}`}>
                     {telemetry.isConnected ? 'Connected' : 'Not Connected'}
                   </Text>
@@ -971,14 +973,14 @@ export const ParentModeDashboard: React.FC<ParentModeDashboardProps> = ({
                       isTaken ? 'border-[#34c759]' : 'border-[#ff9500]'
                     }`}
                   >
-                    <View className="flex-grow space-y-0.5">
-                      <Text className="text-sm font-bold text-neutral-900">{title}</Text>
-                      <Text className="text-xs text-neutral-400 font-semibold leading-relaxed">
+                    <View className="flex-1 pr-2 space-y-0.5">
+                      <Text className="text-sm font-bold text-neutral-900" numberOfLines={1}>{title}</Text>
+                      <Text className="text-xs text-neutral-400 font-semibold leading-relaxed" numberOfLines={1}>
                         {subtitle}
                       </Text>
                     </View>
                     <View
-                      className={`px-2.5 py-0.5 rounded-full ${isTaken ? 'bg-emerald-50' : 'bg-orange-50'}`}
+                      className={`px-2.5 py-0.5 rounded-full shrink-0 ${isTaken ? 'bg-emerald-50' : 'bg-orange-50'}`}
                     >
                       <Text
                         className={`text-[8px] font-bold uppercase ${isTaken ? 'text-[#34c759]' : 'text-[#ff9500]'}`}
@@ -1006,24 +1008,24 @@ export const ParentModeDashboard: React.FC<ParentModeDashboardProps> = ({
             onPress={() => router.push('/(parent)/devices')}
             className="bg-white rounded-3xl p-5 shadow-lg shadow-neutral-100 flex-row items-center justify-between active:scale-98 border border-neutral-100"
           >
-            <View className="flex-row items-center gap-3.5">
-              <View className="w-12 h-12 rounded-3xl bg-indigo-50 border border-indigo-100 items-center justify-center">
+            <View className="flex-row items-center gap-3.5 flex-1 pr-2">
+              <View className="w-12 h-12 rounded-3xl bg-indigo-50 border border-indigo-100 items-center justify-center shrink-0">
                 <Watch size={24} color="#2a14b4" />
               </View>
-              <View>
-                <View className="flex-row items-center gap-2">
-                  <Text className="text-base font-bold text-neutral-900">{activeDevice.name}</Text>
-                  <View className={`w-2 h-2 rounded-full ${telemetry.isConnected ? 'bg-emerald-500' : 'bg-slate-400'}`} />
+              <View className="flex-1">
+                <View className="flex-row items-center gap-2 flex-wrap">
+                  <Text className="text-base font-bold text-neutral-900" numberOfLines={1}>{activeDevice.name}</Text>
+                  <View className={`w-2 h-2 rounded-full ${telemetry.isConnected ? 'bg-emerald-500' : 'bg-slate-400'} shrink-0`} />
                   <Text className={`text-xs font-bold ${telemetry.isConnected ? 'text-emerald-700' : 'text-slate-500'}`}>
                     {activeDevice.status}
                   </Text>
                 </View>
-                <Text className="text-xs text-neutral-400 font-medium mt-0.5">
+                <Text className="text-xs text-neutral-400 font-medium mt-0.5" numberOfLines={1}>
                   {activeDevice.steps ? `${activeDevice.steps.toLocaleString()} steps • ` : ''}{activeDevice.lastUpdated}
                 </Text>
               </View>
             </View>
-            <View className="flex-row items-center gap-1">
+            <View className="flex-row items-center gap-1 shrink-0">
               <Text className="text-xs font-bold text-[#007aff]">View</Text>
               <ChevronRight size={14} color="#007aff" />
             </View>
@@ -1059,12 +1061,14 @@ export const ParentModeDashboard: React.FC<ParentModeDashboardProps> = ({
                     <Text
                       testID="parent-home-appointment-doctor"
                       className="text-base font-bold text-neutral-900"
+                      numberOfLines={1}
                     >
                       {upcomingAppt.doctorName} ({upcomingAppt.specialty})
                     </Text>
                     <Text
                       testID="parent-home-appointment-details"
                       className="text-xs text-neutral-500 mt-0.5"
+                      numberOfLines={1}
                     >
                       {upcomingAppt.date} at {upcomingAppt.time} • {upcomingAppt.location}
                     </Text>
@@ -1072,19 +1076,20 @@ export const ParentModeDashboard: React.FC<ParentModeDashboardProps> = ({
                       testID="parent-home-appointment-localtime"
                       accessibilityLabel={`Appointment at ${upcomingAppt.time} your local time, ${parentTimezone}. No conversion needed.`}
                       className="text-[10px] font-bold text-neutral-400 mt-1"
+                      numberOfLines={1}
                     >
                       {upcomingAppt.time} local time · {parentTimezone}
                     </Text>
                   </View>
                 </View>
-                <ChevronRight size={16} color="#8e8e93" />
+                <ChevronRight size={16} color="#8e8e93" className="shrink-0" />
               </View>
 
               <View className="bg-blue-50/60 px-3.5 py-2 rounded-xl flex-row items-center justify-between">
-                <Text className="text-xs font-semibold text-[#007aff]">
+                <Text className="text-xs font-semibold text-[#007aff] flex-1 pr-2" numberOfLines={1}>
                   {upcomingAppt.specialty} consultation booked
                 </Text>
-                <Text className="text-xs font-bold text-[#007aff]">View Details &rarr;</Text>
+                <Text className="text-xs font-bold text-[#007aff] shrink-0">View Details &rarr;</Text>
               </View>
             </TouchableOpacity>
           ) : (

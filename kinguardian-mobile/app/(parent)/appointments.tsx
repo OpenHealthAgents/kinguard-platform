@@ -177,20 +177,22 @@ export default function AppointmentsRoute() {
               className="bg-white rounded-3xl p-6 shadow-sm shadow-neutral-100 space-y-5 border-l-4 border-[#007aff]"
             >
               <View className="flex-row justify-between items-start">
-                <View className="space-y-0.5">
+                <View className="space-y-0.5 flex-1 pr-2">
                   <Text
                     testID={`parent-appointments-specialty-${appt.id}`}
-                    className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">
+                    className="text-xs font-semibold text-neutral-400 uppercase tracking-wider"
+                    numberOfLines={1}>
                     {appt.specialty}
                   </Text>
                   <Text
                     testID={`parent-appointments-doctor-${appt.id}`}
-                    className="text-xl font-bold text-neutral-900 tracking-tight">
+                    className="text-xl font-bold text-neutral-900 tracking-tight"
+                    numberOfLines={2}>
                     {appt.doctorName}
                   </Text>
                 </View>
                 <View
-                  className={`px-2.5 py-0.5 rounded-full border ${
+                  className={`px-2.5 py-0.5 rounded-full border shrink-0 ${
                     isOfflineCopy
                       ? 'bg-amber-100 border-amber-300 flex-row items-center gap-1'
                       : 'bg-blue-50 border-blue-100/50'
@@ -213,7 +215,7 @@ export default function AppointmentsRoute() {
                   <View className="w-8 h-8 rounded-full bg-rose-50 items-center justify-center shrink-0">
                     <Calendar size={14} color="#ff3b30" />
                   </View>
-                  <View>
+                  <View className="flex-1">
                     <Text className="text-[9px] font-bold text-neutral-400 uppercase">Date</Text>
                     <Text className="text-xs font-semibold text-neutral-800">{appt.date}</Text>
                   </View>
@@ -223,7 +225,7 @@ export default function AppointmentsRoute() {
                   <View className="w-8 h-8 rounded-full bg-[#eff6ff] items-center justify-center shrink-0">
                     <Clock size={14} color="#007aff" />
                   </View>
-                  <View>
+                  <View className="flex-1">
                     <Text className="text-[9px] font-bold text-neutral-400 uppercase">Time</Text>
                     <Text
                       testID={`parent-appointments-time-${appt.id}`}
@@ -238,7 +240,7 @@ export default function AppointmentsRoute() {
                   <View className="w-8 h-8 rounded-full bg-blue-50 items-center justify-center shrink-0">
                     <MapPin size={14} color="#007aff" />
                   </View>
-                  <View>
+                  <View className="flex-1">
                     <Text className="text-[9px] font-bold text-neutral-400 uppercase">Clinic location</Text>
                     <Text
                       testID={`parent-appointments-location-${appt.id}`}

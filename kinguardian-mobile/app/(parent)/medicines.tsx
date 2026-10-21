@@ -108,7 +108,7 @@ export default function ParentMedicinesRoute() {
                   <View className="space-y-1">
                     <Text
                       testID={`parent-medicines-name-${med.id}`}
-                      className="text-3xl font-bold text-neutral-800 leading-none"
+                      className="text-2xl font-bold text-neutral-800 leading-tight"
                     >
                       {med.name}
                     </Text>
