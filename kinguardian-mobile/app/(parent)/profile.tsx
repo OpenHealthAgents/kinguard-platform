@@ -1,5 +1,5 @@
-import { useContext, useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Modal, Switch, TextInput } from 'react-native';
+import { useContext, useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, Modal, Switch, TextInput, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AppContext } from '../../src/store/AppContext';
 import { ParentBottomNavBar } from '../../src/components/Navigation';
@@ -20,7 +20,10 @@ import {
   CheckCircle2,
   Watch,
   ShieldAlert,
-  Clock
+  Clock,
+  Phone,
+  Calendar,
+  MessageCircle
 } from 'lucide-react-native';
 import { authService } from '../../src/services/auth/authService';
 import { confirmAction } from '../../src/utils/alert';
@@ -57,11 +60,91 @@ const SCOPE_PRESETS: Record<ConsentScopePreset, {
 export default function ParentProfileRoute() {
   const context = useContext(AppContext);
   const router = useRouter();
+
+  const [showInfoModal, setShowInfoModal] = useState<boolean>(false);
   const [showPrivacyModal, setShowPrivacyModal] = useState<boolean>(false);
   const [showLanguageModal, setShowLanguageModal] = useState<boolean>(false);
   const [showRoleModal, setShowRoleModal] = useState<boolean>(false);
+  const [showDoctorsModal, setShowDoctorsModal] = useState<boolean>(false);
+  const [showHelpModal, setShowHelpModal] = useState<boolean>(false);
   const [selectedLang, setSelectedLang] = useState<string>(getLanguage());
+
   const coordName = context?.coordinatorName || 'Coordinator';
+
+  // My Information states
+  const [infoName, setInfoName] = useState(context?.currentUser?.name || 'Ramesh Sharma');
+  const [infoAge, setInfoAge] = useState(String(context?.currentUser?.age || 68));
+  const [infoCity, setInfoCity] = useState(context?.currentUser?.location || 'Chennai, India');
+  const [infoPhone, setInfoPhone] = useState('+91 98765 43210');
+  const [infoBloodGroup, setInfoBloodGroup] = useState('O+');
+  const [infoSaving, setInfoSaving] = useState(false);
+
+  useEffect(() => {
+    const loadSavedInfo = async () => {
+      try {
+        const stored = await AsyncStorage.getItem('kinguardian_user_info');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed.name) setInfoName(parsed.name);
+          if (parsed.age) setInfoAge(String(parsed.age));
+          if (parsed.location) setInfoCity(parsed.location);
+          if (parsed.phone) setInfoPhone(parsed.phone);
+          if (parsed.bloodGroup) setInfoBloodGroup(parsed.bloodGroup);
+          if (context?.setCurrentUser && context.currentUser) {
+            context.setCurrentUser({
+              ...context.currentUser,
+              name: parsed.name || context.currentUser.name,
+              age: parsed.age || context.currentUser.age,
+              location: parsed.location || context.currentUser.location
+            });
+          }
+        } else if (context?.currentUser) {
+          setInfoName(context.currentUser.name || 'Ramesh Sharma');
+          setInfoAge(String(context.currentUser.age || 68));
+          setInfoCity(context.currentUser.location || 'Chennai, India');
+        }
+      } catch (err) {
+        console.warn('Error loading stored user info:', err);
+      }
+    };
+    loadSavedInfo();
+  }, [context?.currentUser?.name]);
+
+  const handleSaveInfo = async () => {
+    setInfoSaving(true);
+    try {
+      const parsedAge = parseInt(infoAge, 10) || context?.currentUser?.age || 68;
+      const updatedUser = {
+        ...(context?.currentUser || {
+          id: 'user_parent_demo',
+          role: 'parent' as const,
+          avatarUrl: '',
+          relation: 'Parent'
+        }),
+        name: infoName.trim() || 'Parent',
+        age: parsedAge,
+        location: infoCity.trim() || 'India',
+        relation: context?.currentUser?.relation || 'Parent'
+      };
+      if (context?.setCurrentUser) {
+        context.setCurrentUser(updatedUser);
+      }
+      await AsyncStorage.setItem('kinguardian_user_info', JSON.stringify({
+        name: updatedUser.name,
+        age: updatedUser.age,
+        location: updatedUser.location,
+        phone: infoPhone,
+        bloodGroup: infoBloodGroup
+      }));
+      context?.showToast('Your information was updated successfully.');
+      setShowInfoModal(false);
+    } catch (e) {
+      console.warn('Failed to save user info:', e);
+      context?.showToast('Could not save information.');
+    } finally {
+      setInfoSaving(false);
+    }
+  };
 
   const handleUpdateRole = async (newRole: string) => {
     await AsyncStorage.setItem('kinguardian_parent_relation', newRole);
@@ -73,7 +156,7 @@ export default function ParentProfileRoute() {
     }
     setShowRoleModal(false);
     const label = newRole === 'Mother' ? 'Mother (Mom)' : newRole === 'Father' ? 'Father (Dad)' : 'Personal Name';
-    context?.showToast(`Updated parent role to ${label}`);
+    context?.showToast(`Updated parent greeting title to ${label}`);
   };
 
   // FAM-003/004/005/006: consent scope, expiry, revoke state
@@ -128,34 +211,6 @@ export default function ParentProfileRoute() {
     } catch (err: any) {
       console.warn('handleApplyScope error:', err);
       context.showToast(`Scope update failed: ${err?.message || 'unknown error'}`);
-    } finally {
-      setConsentBusy(false);
-    }
-  };
-
-  const handleRevokeConsent = async () => {
-    if (!context) return;
-    setConsentBusy(true);
-    try {
-      const familyId = await familyService.ensureFamily();
-      const subjectId = await familyService.resolveSubjectId(context.currentPersonId || 'dad');
-      const existing = await familyService.client.consents.list(familyId, subjectId);
-      let revoked = 0;
-      for (const c of (existing || [])) {
-        if (c.status === 'active') {
-          await familyService.client.consents.revoke(c.id);
-          revoked++;
-        }
-      }
-      context.setConsentApproved(false);
-      context.showToast(
-        revoked > 0
-          ? `Consent revoked (${revoked} record${revoked > 1 ? 's' : ''}). Access blocked & audited.`
-          : 'No active consent to revoke.'
-      );
-    } catch (err: any) {
-      console.warn('handleRevokeConsent error:', err);
-      context.showToast(`Revoke failed: ${err?.message || 'unknown error'}`);
     } finally {
       setConsentBusy(false);
     }
@@ -248,7 +303,7 @@ export default function ParentProfileRoute() {
     },
     {
       title: 'Language',
-      description: selectedLang === 'ta' ? 'Tamil (தமிழ்) · Active' : 'English (US) · Active',
+      description: selectedLang === 'ta' ? 'Tamil (தமிழ்) · Active' : selectedLang === 'hi' ? 'Hindi (हिन्दी) · Active' : 'English (US) · Active',
       icon: Globe,
       color: '#007aff',
       bgColor: '#eff6ff'
@@ -285,17 +340,25 @@ export default function ParentProfileRoute() {
               return (
                 <TouchableOpacity
                   key={idx}
+                  testID={`parent-profile-option-${idx}`}
                   onPress={() => {
-                    if (opt.title.includes('devices') || opt.title.includes('Google Fit')) {
+                    const titleLower = opt.title.toLowerCase();
+                    if (titleLower.includes('devices') || titleLower.includes('google fit')) {
                       router.push('/(parent)/devices');
-                    } else if (opt.title.includes('Parent role')) {
+                    } else if (titleLower.includes('information')) {
+                      setShowInfoModal(true);
+                    } else if (titleLower.includes('parent role') || titleLower.includes('greeting')) {
                       setShowRoleModal(true);
-                    } else if (opt.title.includes('Privacy')) {
+                    } else if (titleLower.includes('doctor')) {
+                      setShowDoctorsModal(true);
+                    } else if (titleLower.includes('privacy')) {
                       setShowPrivacyModal(true);
-                    } else if (opt.title.toLowerCase().includes('language')) {
+                    } else if (titleLower.includes('language')) {
                       setShowLanguageModal(true);
-                    } else if (opt.title.toLowerCase().includes('family')) {
+                    } else if (titleLower.includes('family')) {
                       router.push('/(parent)/family');
+                    } else if (titleLower.includes('help') || titleLower.includes('support')) {
+                      setShowHelpModal(true);
                     } else {
                       context.showToast(`Opening ${opt.title}...`);
                     }
@@ -351,365 +414,720 @@ export default function ParentProfileRoute() {
             else if (tab === 'ask') router.push('/(parent)/ask');
           }}
         />
-      </View>
 
-      {/* Explicit Privacy & Consent Modal */}
-      <Modal
-        visible={showPrivacyModal}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setShowPrivacyModal(false)}
-      >
-        <View className="flex-1 bg-black/50 justify-end">
-          <View className="bg-white rounded-t-[28px] max-h-[85%] p-6 pt-3 space-y-4 shadow-xl">
-            {/* iOS Grabber Handle */}
-            <View className="w-10 h-1.5 bg-neutral-200 rounded-full self-center mb-1.5" />
+        {/* ========================================================================= */}
+        {/* MODAL 1: My Information Modal */}
+        {/* ========================================================================= */}
+        <Modal
+          visible={showInfoModal}
+          animationType="slide"
+          transparent={true}
+          onRequestClose={() => setShowInfoModal(false)}
+        >
+          <View style={{ flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.5)', justifyContent: 'flex-end' }}>
+            <View style={{ backgroundColor: '#ffffff', borderTopLeftRadius: 28, borderTopRightRadius: 28, maxHeight: '85%', padding: 24, paddingTop: 12 }}>
+              <View className="w-10 h-1.5 bg-neutral-200 rounded-full self-center mb-2" />
 
-            {/* Header */}
-            <View className="flex-row justify-between items-center pb-2 border-b border-neutral-100">
-              <View className="flex-row items-center gap-2">
-                <Shield size={18} color="#af52de" />
-                <Text className="text-lg font-bold text-neutral-900 tracking-tight">
-                  Privacy &amp; Access
-                </Text>
-              </View>
-              <TouchableOpacity
-                onPress={() => setShowPrivacyModal(false)}
-                className="p-1.5 bg-neutral-100 rounded-full"
-              >
-                <X size={16} color="#8e8e93" />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView className="space-y-4">
-              {/* Permissions Explanation */}
-              <View className="bg-neutral-50 border border-neutral-200/50 p-4 rounded-2xl space-y-2">
-                <Text className="text-xs font-bold text-neutral-800 uppercase tracking-wide">
-                  Simple permissions explanation
-                </Text>
-                <Text className="text-xs text-neutral-500 font-semibold leading-relaxed">
-                  Sharing lets {coordName} look out for your health, and allows your family circle to stay
-                  coordinated with your daily medication logs and vitals. We encrypt all documents and
-                  telemetry. You are always in control of who sees what.
-                </Text>
-              </View>
-
-              {/* Explicit Toggle */}
-              <View className="border border-neutral-100 bg-neutral-50 rounded-2xl p-4.5 flex-row justify-between items-center">
-                <View className="flex-1 pr-4 space-y-1">
-                  <Text className="text-sm font-bold text-neutral-800">Consent Status</Text>
-                  <Text className="text-xs text-neutral-400 font-semibold leading-snug">
-                    I consent to sharing my daily vitals and check-in logs with my Care circle
+              <View className="flex-row justify-between items-center pb-3 border-b border-neutral-100">
+                <View className="flex-row items-center gap-2">
+                  <User size={20} color="#ff9500" />
+                  <Text className="text-lg font-bold text-neutral-900 tracking-tight">
+                    My Information
                   </Text>
                 </View>
-                <Switch
-                  value={context.consentApproved}
-                  onValueChange={(val) => {
-                    context.handleSetConsentApproved?.(val) ?? context.setConsentApproved(val);
-                  }}
-                  trackColor={{ false: '#d1d1d6', true: '#34c759' }}
-                  thumbColor="#ffffff"
-                />
+                <TouchableOpacity
+                  onPress={() => setShowInfoModal(false)}
+                  className="p-1.5 bg-neutral-100 rounded-full"
+                >
+                  <X size={16} color="#8e8e93" />
+                </TouchableOpacity>
               </View>
 
-              {/* Access Levels Matrix */}
-              <View className="space-y-3 pt-2">
-                <Text className="text-xs font-bold text-neutral-400 uppercase tracking-widest">
-                  Active Access List
-                </Text>
+              <ScrollView className="space-y-4 pt-3" showsVerticalScrollIndicator={false}>
+                <View className="space-y-1">
+                  <Text className="text-xs font-bold text-neutral-500 uppercase tracking-wide">
+                    Full Name
+                  </Text>
+                  <TextInput
+                    value={infoName}
+                    onChangeText={setInfoName}
+                    placeholder="Your Full Name"
+                    className="bg-neutral-50 border border-neutral-200 rounded-2xl p-3.5 text-sm font-semibold text-neutral-800"
+                  />
+                </View>
 
-                {/* Coordinator */}
-                <View className="bg-white border border-neutral-100 rounded-xl p-4 flex-row justify-between items-center">
-                  <View className="space-y-0.5 flex-1 pr-2">
-                    <Text className="text-xs font-bold text-neutral-800" numberOfLines={1}>{coordName} (Coordinator)</Text>
-                    <Text className="text-[10px] text-neutral-400 font-semibold" numberOfLines={1}>
-                      Primary Coordinator
+                <View className="flex-row gap-3">
+                  <View className="flex-1 space-y-1">
+                    <Text className="text-xs font-bold text-neutral-500 uppercase tracking-wide">
+                      Age
                     </Text>
+                    <TextInput
+                      value={infoAge}
+                      onChangeText={setInfoAge}
+                      keyboardType="number-pad"
+                      placeholder="e.g. 68"
+                      className="bg-neutral-50 border border-neutral-200 rounded-2xl p-3.5 text-sm font-semibold text-neutral-800"
+                    />
                   </View>
-                  <View className="bg-blue-50 px-3 py-1 rounded-full shrink-0">
-                    <Text className="text-[10px] font-bold text-[#007aff] uppercase">
-                      Full Access
+
+                  <View className="flex-1 space-y-1">
+                    <Text className="text-xs font-bold text-neutral-500 uppercase tracking-wide">
+                      Blood Group
                     </Text>
+                    <View className="flex-row items-center gap-1.5 flex-wrap pt-1">
+                      {['A+', 'B+', 'O+', 'AB+'].map((bg) => (
+                        <TouchableOpacity
+                          key={bg}
+                          onPress={() => setInfoBloodGroup(bg)}
+                          className={`px-3 py-1.5 rounded-xl border ${infoBloodGroup === bg ? 'bg-orange-50 border-orange-400' : 'bg-neutral-50 border-neutral-200'}`}
+                        >
+                          <Text className={`text-xs font-bold ${infoBloodGroup === bg ? 'text-orange-600' : 'text-neutral-700'}`}>
+                            {bg}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
                   </View>
                 </View>
 
-                {/* Other members dynamically */}
-                {context.people && context.people.filter(p => p.name !== coordName && p.name !== context.currentUser?.name).map((person) => (
-                  <View key={person.id} className="bg-white border border-neutral-100 rounded-xl p-4 flex-row justify-between items-center">
-                    <View className="space-y-0.5 flex-1 pr-2">
-                      <Text className="text-xs font-bold text-neutral-800" numberOfLines={1}>{person.name} ({person.relationship || person.role || 'Member'})</Text>
-                      <Text className="text-[10px] text-neutral-400 font-semibold" numberOfLines={1}>
-                        Care Circle · {person.location || 'Connected'}
-                      </Text>
-                    </View>
-                    <View className="bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100 shrink-0">
-                      <Text className="text-[10px] font-bold text-[#34c759] uppercase">
-                        Care + Summary
-                      </Text>
-                    </View>
-                  </View>
-                ))}
+                <View className="space-y-1">
+                  <Text className="text-xs font-bold text-neutral-500 uppercase tracking-wide">
+                    City & Location
+                  </Text>
+                  <TextInput
+                    value={infoCity}
+                    onChangeText={setInfoCity}
+                    placeholder="City, Country"
+                    className="bg-neutral-50 border border-neutral-200 rounded-2xl p-3.5 text-sm font-semibold text-neutral-800"
+                  />
+                </View>
+
+                <View className="space-y-1">
+                  <Text className="text-xs font-bold text-neutral-500 uppercase tracking-wide">
+                    Emergency Phone Contact
+                  </Text>
+                  <TextInput
+                    value={infoPhone}
+                    onChangeText={setInfoPhone}
+                    keyboardType="phone-pad"
+                    placeholder="+91 98765 43210"
+                    className="bg-neutral-50 border border-neutral-200 rounded-2xl p-3.5 text-sm font-semibold text-neutral-800"
+                  />
+                </View>
+
+                <TouchableOpacity
+                  onPress={handleSaveInfo}
+                  disabled={infoSaving}
+                  className="w-full bg-[#ff9500] py-4 rounded-2xl items-center justify-center flex-row gap-2 active:opacity-90 shadow-xs mt-2"
+                >
+                  {infoSaving ? (
+                    <ActivityIndicator size="small" color="#ffffff" />
+                  ) : (
+                    <CheckCircle2 size={16} color="#ffffff" />
+                  )}
+                  <Text className="text-white font-bold text-sm">
+                    {infoSaving ? 'Saving Changes...' : 'Save Profile Information'}
+                  </Text>
+                </TouchableOpacity>
+              </ScrollView>
+            </View>
+          </View>
+        </Modal>
+
+        {/* ========================================================================= */}
+        {/* MODAL 2: Parent Role & Greeting Title Modal */}
+        {/* ========================================================================= */}
+        <Modal
+          visible={showRoleModal}
+          animationType="slide"
+          transparent={true}
+          onRequestClose={() => setShowRoleModal(false)}
+        >
+          <View style={{ flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.5)', justifyContent: 'flex-end' }}>
+            <View style={{ backgroundColor: '#ffffff', borderTopLeftRadius: 28, borderTopRightRadius: 28, maxHeight: '85%', padding: 24, paddingTop: 12 }}>
+              <View className="w-10 h-1.5 bg-neutral-200 rounded-full self-center mb-1.5" />
+
+              <View className="flex-row justify-between items-center pb-2 border-b border-neutral-100">
+                <View className="flex-row items-center gap-2">
+                  <User size={18} color="#10b981" />
+                  <Text className="text-lg font-bold text-neutral-900 tracking-tight">
+                    Select Parent Title
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  onPress={() => setShowRoleModal(false)}
+                  className="p-1.5 bg-neutral-100 rounded-full"
+                >
+                  <X size={16} color="#8e8e93" />
+                </TouchableOpacity>
               </View>
 
-              {/* Consent Scope Preset (FAM-005) */}
-              <View className="space-y-2 pt-1">
-                <Text className="text-xs font-bold text-neutral-400 uppercase tracking-widest">
-                  Consent Scope
+              <ScrollView className="space-y-3 pt-3">
+                <Text className="text-xs text-neutral-400 font-semibold uppercase tracking-wider">
+                  How should KinGuardian address you?
                 </Text>
-                {(Object.keys(SCOPE_PRESETS) as ConsentScopePreset[]).map((key) => {
-                  const preset = SCOPE_PRESETS[key];
-                  const active = scopePreset === key;
+
+                {[
+                  { role: 'Mother', label: 'Mother (Mom)', example: '“Good morning, Mom ❤️”' },
+                  { role: 'Father', label: 'Father (Dad)', example: '“Good morning, Dad ❤️”' },
+                  { role: 'Parent', label: 'Personal Name', example: `“Good morning, ${context?.currentUser?.name?.split(' ')[0] || 'Parent'} ❤️”` }
+                ].map((item) => {
+                  const currentRel = context?.currentUser?.relation || 'Parent';
+                  const isSelected =
+                    item.role === 'Mother'
+                      ? currentRel === 'Mother' || currentRel === 'Mom'
+                      : item.role === 'Father'
+                      ? currentRel === 'Father' || currentRel === 'Dad'
+                      : currentRel !== 'Mother' && currentRel !== 'Mom' && currentRel !== 'Father' && currentRel !== 'Dad';
+
                   return (
                     <TouchableOpacity
-                      key={key}
-                      testID={`parent-consent-scope-${key}`}
-                      disabled={consentBusy}
-                      onPress={() => handleApplyScope(key)}
-                      className={`p-3 rounded-xl border flex-row items-center justify-between ${
-                        active
-                          ? 'border-emerald-400 bg-emerald-50/70'
-                          : 'border-neutral-200 bg-white'
+                      key={item.role}
+                      onPress={() => handleUpdateRole(item.role)}
+                      className={`p-4 rounded-2xl border flex-row items-center justify-between ${
+                        isSelected
+                          ? 'border-emerald-500 bg-emerald-50/60'
+                          : 'border-neutral-200 bg-neutral-50/50'
                       }`}
                     >
-                      <View className="flex-1 pr-3">
-                        <Text
-                          className={`text-xs font-bold ${
-                            active ? 'text-emerald-800' : 'text-neutral-800'
-                          }`}
-                        >
-                          {preset.label}
+                      <View>
+                        <Text className={`text-sm font-bold ${isSelected ? 'text-emerald-700' : 'text-neutral-800'}`}>
+                          {item.label}
                         </Text>
-                        <Text className="text-[10px] text-neutral-500 mt-0.5">
-                          {preset.description}
+                        <Text className="text-xs text-neutral-500 font-medium mt-0.5">
+                          {item.example}
                         </Text>
                       </View>
-                      {active && <CheckCircle2 size={16} color="#059669" />}
+                      {isSelected && (
+                        <View className="w-6 h-6 rounded-full bg-emerald-600 items-center justify-center">
+                          <CheckCircle2 size={16} color="#ffffff" />
+                        </View>
+                      )}
                     </TouchableOpacity>
                   );
                 })}
-              </View>
+              </ScrollView>
+            </View>
+          </View>
+        </Modal>
 
-              {/* Consent Expiry Simulation (FAM-006) */}
-              <View className="bg-amber-50/60 border border-amber-200 rounded-2xl p-4 space-y-2">
+        {/* ========================================================================= */}
+        {/* MODAL 3: My Doctors Modal */}
+        {/* ========================================================================= */}
+        <Modal
+          visible={showDoctorsModal}
+          animationType="slide"
+          transparent={true}
+          onRequestClose={() => setShowDoctorsModal(false)}
+        >
+          <View style={{ flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.5)', justifyContent: 'flex-end' }}>
+            <View style={{ backgroundColor: '#ffffff', borderTopLeftRadius: 28, borderTopRightRadius: 28, maxHeight: '85%', padding: 24, paddingTop: 12 }}>
+              <View className="w-10 h-1.5 bg-neutral-200 rounded-full self-center mb-2" />
+
+              <View className="flex-row justify-between items-center pb-3 border-b border-neutral-100">
                 <View className="flex-row items-center gap-2">
-                  <Clock size={14} color="#b45309" />
-                  <Text className="text-xs font-bold text-amber-900">
-                    Consent Expiry
+                  <Stethoscope size={20} color="#34c759" />
+                  <Text className="text-lg font-bold text-neutral-900 tracking-tight">
+                    My Doctors & Care Team
                   </Text>
                 </View>
-                <Text className="text-[10px] text-amber-800 leading-snug">
-                  Grant a consent that expires after N days. After expiry, the API denies access
-                  and the row is marked <Text className="font-mono font-bold">expired</Text>.
+                <TouchableOpacity
+                  onPress={() => setShowDoctorsModal(false)}
+                  className="p-1.5 bg-neutral-100 rounded-full"
+                >
+                  <X size={16} color="#8e8e93" />
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView className="space-y-4 pt-3" showsVerticalScrollIndicator={false}>
+                <Text className="text-xs text-neutral-400 font-semibold uppercase tracking-wider">
+                  Connected Medical Specialists
                 </Text>
+
+                {/* Doctor 1 */}
+                <View className="bg-emerald-50/50 border border-emerald-100 rounded-2xl p-4 space-y-3">
+                  <View className="flex-row items-start justify-between">
+                    <View className="flex-row items-center gap-3 flex-1 pr-2">
+                      <View className="w-12 h-12 rounded-2xl bg-emerald-100 items-center justify-center shrink-0">
+                        <Stethoscope size={22} color="#059669" />
+                      </View>
+                      <View className="flex-1">
+                        <Text className="text-sm font-bold text-neutral-900" numberOfLines={1}>
+                          Dr. Ananya Sharma
+                        </Text>
+                        <Text className="text-xs text-emerald-700 font-medium">
+                          Cardiology · Apollo Hospital Chennai
+                        </Text>
+                        <Text className="text-[10px] text-neutral-400 mt-0.5">
+                          Primary Family Doctor & Heart Specialist
+                        </Text>
+                      </View>
+                    </View>
+                    <View className="bg-emerald-100 px-2.5 py-0.5 rounded-full shrink-0">
+                      <Text className="text-[9px] font-bold text-emerald-800 uppercase">Primary</Text>
+                    </View>
+                  </View>
+
+                  <View className="flex-row items-center gap-2 pt-2 border-t border-emerald-100/60">
+                    <TouchableOpacity
+                      onPress={() => {
+                        confirmAction(
+                          'Call Doctor Clinic',
+                          'Call Apollo Hospital Cardiology Department (+91 44 2829 0200)?',
+                          () => context?.showToast('Calling Apollo Hospital...')
+                        );
+                      }}
+                      className="flex-1 bg-white border border-emerald-200 py-2.5 rounded-xl flex-row items-center justify-center gap-1.5"
+                    >
+                      <Phone size={13} color="#059669" />
+                      <Text className="text-xs font-bold text-emerald-700">Call Clinic</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      onPress={() => {
+                        setShowDoctorsModal(false);
+                        router.push('/(parent)/appointments');
+                      }}
+                      className="flex-1 bg-[#059669] py-2.5 rounded-xl flex-row items-center justify-center gap-1.5"
+                    >
+                      <Calendar size={13} color="#ffffff" />
+                      <Text className="text-xs font-bold text-white">Appointments</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                {/* Doctor 2 */}
+                <View className="bg-neutral-50 border border-neutral-200/60 rounded-2xl p-4 space-y-3">
+                  <View className="flex-row items-start justify-between">
+                    <View className="flex-row items-center gap-3 flex-1 pr-2">
+                      <View className="w-12 h-12 rounded-2xl bg-neutral-100 items-center justify-center shrink-0">
+                        <Stethoscope size={22} color="#64748b" />
+                      </View>
+                      <View className="flex-1">
+                        <Text className="text-sm font-bold text-neutral-900" numberOfLines={1}>
+                          Dr. Ramesh Patel
+                        </Text>
+                        <Text className="text-xs text-neutral-600 font-medium">
+                          General Physician · Apollo Clinic
+                        </Text>
+                        <Text className="text-[10px] text-neutral-400 mt-0.5">
+                          Consultant · Routine Check-ups
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+
+                  <View className="flex-row items-center gap-2 pt-2 border-t border-neutral-200/50">
+                    <TouchableOpacity
+                      onPress={() => {
+                        context?.showToast('Dr. Ramesh Patel is on call for routine queries.');
+                      }}
+                      className="w-full bg-white border border-neutral-200 py-2.5 rounded-xl flex-row items-center justify-center gap-1.5"
+                    >
+                      <Phone size={13} color="#64748b" />
+                      <Text className="text-xs font-bold text-neutral-700">Call Apollo Clinic</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                <TouchableOpacity
+                  onPress={() => {
+                    context?.showToast('Vitals and medication schedule shared with Dr. Sharma.');
+                    setShowDoctorsModal(false);
+                  }}
+                  className="w-full bg-blue-50 border border-blue-200 py-3.5 rounded-2xl items-center justify-center flex-row gap-2 active:bg-blue-100 mt-1"
+                >
+                  <CheckCircle2 size={16} color="#007aff" />
+                  <Text className="text-xs font-bold text-[#007aff]">Share Health Summary with Doctors</Text>
+                </TouchableOpacity>
+              </ScrollView>
+            </View>
+          </View>
+        </Modal>
+
+        {/* ========================================================================= */}
+        {/* MODAL 4: Privacy Settings Modal */}
+        {/* ========================================================================= */}
+        <Modal
+          visible={showPrivacyModal}
+          animationType="slide"
+          transparent={true}
+          onRequestClose={() => setShowPrivacyModal(false)}
+        >
+          <View style={{ flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.5)', justifyContent: 'flex-end' }}>
+            <View style={{ backgroundColor: '#ffffff', borderTopLeftRadius: 28, borderTopRightRadius: 28, maxHeight: '85%', padding: 24, paddingTop: 12 }}>
+              <View className="w-10 h-1.5 bg-neutral-200 rounded-full self-center mb-1.5" />
+
+              <View className="flex-row justify-between items-center pb-2 border-b border-neutral-100">
                 <View className="flex-row items-center gap-2">
-                  <TextInput
-                    testID="parent-consent-expiry-input"
-                    value={expiryDays}
-                    onChangeText={setExpiryDays}
-                    placeholder="Days (e.g. 1)"
-                    placeholderTextColor="#a16207"
-                    keyboardType="number-pad"
-                    className="flex-1 bg-white border border-amber-200 rounded-xl px-3 py-2 text-xs text-neutral-800"
+                  <Shield size={18} color="#af52de" />
+                  <Text className="text-lg font-bold text-neutral-900 tracking-tight">
+                    Privacy &amp; Access
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  onPress={() => setShowPrivacyModal(false)}
+                  className="p-1.5 bg-neutral-100 rounded-full"
+                >
+                  <X size={16} color="#8e8e93" />
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView className="space-y-4 pt-2">
+                <View className="bg-neutral-50 border border-neutral-200/50 p-4 rounded-2xl space-y-2">
+                  <Text className="text-xs font-bold text-neutral-800 uppercase tracking-wide">
+                    Simple permissions explanation
+                  </Text>
+                  <Text className="text-xs text-neutral-500 font-semibold leading-relaxed">
+                    Sharing lets {coordName} look out for your health, and allows your family circle to stay
+                    coordinated with your daily medication logs and vitals. We encrypt all documents and
+                    telemetry. You are always in control of who sees what.
+                  </Text>
+                </View>
+
+                <View className="border border-neutral-100 bg-neutral-50 rounded-2xl p-4.5 flex-row justify-between items-center">
+                  <View className="flex-1 pr-4 space-y-1">
+                    <Text className="text-sm font-bold text-neutral-800">Consent Status</Text>
+                    <Text className="text-xs text-neutral-400 font-semibold leading-snug">
+                      I consent to sharing my daily vitals and check-in logs with my Care circle
+                    </Text>
+                  </View>
+                  <Switch
+                    value={context.consentApproved}
+                    onValueChange={(val) => {
+                      context.handleSetConsentApproved?.(val) ?? context.setConsentApproved(val);
+                    }}
+                    trackColor={{ false: '#d1d1d6', true: '#34c759' }}
+                    thumbColor="#ffffff"
                   />
+                </View>
+
+                <View className="space-y-3 pt-2">
+                  <Text className="text-xs font-bold text-neutral-400 uppercase tracking-widest">
+                    Active Access List
+                  </Text>
+
+                  {/* Coordinator */}
+                  <View className="bg-white border border-neutral-100 rounded-xl p-4 flex-row justify-between items-center">
+                    <View className="space-y-0.5 flex-1 pr-2">
+                      <Text className="text-xs font-bold text-neutral-800" numberOfLines={1}>{coordName} (Coordinator)</Text>
+                      <Text className="text-[10px] text-neutral-400 font-semibold" numberOfLines={1}>
+                        Primary Coordinator
+                      </Text>
+                    </View>
+                    <View className="bg-blue-50 px-3 py-1 rounded-full shrink-0">
+                      <Text className="text-[10px] font-bold text-[#007aff] uppercase">
+                        Full Access
+                      </Text>
+                    </View>
+                  </View>
+
+                  {context.people && context.people.filter(p => p.name !== coordName && p.name !== context.currentUser?.name).map((person) => (
+                    <View key={person.id} className="bg-white border border-neutral-100 rounded-xl p-4 flex-row justify-between items-center">
+                      <View className="space-y-0.5 flex-1 pr-2">
+                        <Text className="text-xs font-bold text-neutral-800" numberOfLines={1}>{person.name} ({person.relationship || person.role || 'Member'})</Text>
+                        <Text className="text-[10px] text-neutral-400 font-semibold" numberOfLines={1}>
+                          Care Circle · {person.location || 'Connected'}
+                        </Text>
+                      </View>
+                      <View className="bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100 shrink-0">
+                        <Text className="text-[10px] font-bold text-[#34c759] uppercase">
+                          Care + Summary
+                        </Text>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+
+                {/* Consent Scope Preset */}
+                <View className="space-y-2 pt-1">
+                  <Text className="text-xs font-bold text-neutral-400 uppercase tracking-widest">
+                    Consent Scope
+                  </Text>
+                  {(Object.keys(SCOPE_PRESETS) as ConsentScopePreset[]).map((key) => {
+                    const preset = SCOPE_PRESETS[key];
+                    const active = scopePreset === key;
+                    return (
+                      <TouchableOpacity
+                        key={key}
+                        testID={`parent-consent-scope-${key}`}
+                        disabled={consentBusy}
+                        onPress={() => handleApplyScope(key)}
+                        className={`p-3 rounded-xl border flex-row items-center justify-between ${
+                          active
+                            ? 'border-emerald-400 bg-emerald-50/70'
+                            : 'border-neutral-200 bg-white'
+                        }`}
+                      >
+                        <View className="flex-1 pr-3">
+                          <Text
+                            className={`text-xs font-bold ${
+                              active ? 'text-emerald-800' : 'text-neutral-800'
+                            }`}
+                          >
+                            {preset.label}
+                          </Text>
+                          <Text className="text-[10px] text-neutral-500 mt-0.5">
+                            {preset.description}
+                          </Text>
+                        </View>
+                        {active && <CheckCircle2 size={16} color="#059669" />}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+
+                {/* Consent Expiry Simulation */}
+                <View className="bg-amber-50/60 border border-amber-200 rounded-2xl p-4 space-y-2">
+                  <View className="flex-row items-center gap-2">
+                    <Clock size={14} color="#b45309" />
+                    <Text className="text-xs font-bold text-amber-900">
+                      Consent Expiry
+                    </Text>
+                  </View>
+                  <Text className="text-[10px] text-amber-800 leading-snug">
+                    Grant a consent that expires after N days.
+                  </Text>
+                  <View className="flex-row items-center gap-2">
+                    <TextInput
+                      testID="parent-consent-expiry-input"
+                      value={expiryDays}
+                      onChangeText={setExpiryDays}
+                      placeholder="Days (e.g. 1)"
+                      placeholderTextColor="#a16207"
+                      keyboardType="number-pad"
+                      className="flex-1 bg-white border border-amber-200 rounded-xl px-3 py-2 text-xs text-neutral-800"
+                    />
+                    <TouchableOpacity
+                      testID="parent-consent-expiry-apply"
+                      disabled={consentBusy}
+                      onPress={handleSimulateExpiry}
+                      className="bg-amber-500 px-4 py-2.5 rounded-xl"
+                    >
+                      <Text className="text-white text-xs font-bold">Apply</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </ScrollView>
+            </View>
+          </View>
+        </Modal>
+
+        {/* ========================================================================= */}
+        {/* MODAL 5: Language Selection Modal */}
+        {/* ========================================================================= */}
+        <Modal
+          visible={showLanguageModal}
+          animationType="slide"
+          transparent={true}
+          onRequestClose={() => setShowLanguageModal(false)}
+        >
+          <View style={{ flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.5)', justifyContent: 'flex-end' }}>
+            <View style={{ backgroundColor: '#ffffff', borderTopLeftRadius: 28, borderTopRightRadius: 28, maxHeight: '85%', padding: 24, paddingTop: 12 }}>
+              <View className="w-10 h-1.5 bg-neutral-200 rounded-full self-center mb-1.5" />
+
+              <View className="flex-row justify-between items-center pb-2 border-b border-neutral-100">
+                <View className="flex-row items-center gap-2">
+                  <Globe size={18} color="#007aff" />
+                  <Text className="text-lg font-bold text-neutral-900 tracking-tight">
+                    Choose Language / மொழி தேர்வு
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  onPress={() => setShowLanguageModal(false)}
+                  className="p-1.5 bg-neutral-100 rounded-full"
+                >
+                  <X size={16} color="#8e8e93" />
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView className="space-y-3 pt-3">
+                <Text className="text-xs text-neutral-400 font-semibold uppercase tracking-wider">
+                  Select App Language
+                </Text>
+
+                {[
+                  { code: 'en', label: 'English', native: 'English (US)' },
+                  { code: 'ta', label: 'Tamil', native: 'தமிழ் (Tamil)' },
+                  { code: 'hi', label: 'Hindi', native: 'हिन्दी (Hindi)' },
+                ].map((lang) => {
+                  const isSelected = selectedLang === lang.code;
+                  return (
+                    <TouchableOpacity
+                      key={lang.code}
+                      onPress={async () => {
+                        setSelectedLang(lang.code);
+                        setLanguage(lang.code);
+                        try {
+                          await realDataService.updateUserLanguage(lang.code);
+                        } catch (err) {
+                          console.warn('Could not persist language to DB:', err);
+                        }
+                        if (lang.code === 'ta') {
+                          context.showToast('மொழி தமிழாக மாற்றப்பட்டது (Language changed to Tamil)');
+                        } else if (lang.code === 'hi') {
+                          context.showToast('भाषा बदलकर हिंदी कर दी गई (Language changed to Hindi)');
+                        } else {
+                          context.showToast(`Language switched to ${lang.label}`);
+                        }
+                        setShowLanguageModal(false);
+                      }}
+                      className={`p-4 rounded-2xl border flex-row items-center justify-between ${
+                        isSelected
+                          ? 'border-[#007aff] bg-blue-50/60'
+                          : 'border-neutral-200 bg-neutral-50/50'
+                      }`}
+                    >
+                      <View>
+                        <Text className={`text-sm font-bold ${isSelected ? 'text-[#007aff]' : 'text-neutral-800'}`}>
+                          {lang.label}
+                        </Text>
+                        <Text className="text-xs text-neutral-500 font-medium mt-0.5">
+                          {lang.native}
+                        </Text>
+                      </View>
+                      {isSelected && (
+                        <View className="w-6 h-6 rounded-full bg-[#007aff] items-center justify-center">
+                          <CheckCircle2 size={16} color="#ffffff" />
+                        </View>
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            </View>
+          </View>
+        </Modal>
+
+        {/* ========================================================================= */}
+        {/* MODAL 6: Help & Support Modal */}
+        {/* ========================================================================= */}
+        <Modal
+          visible={showHelpModal}
+          animationType="slide"
+          transparent={true}
+          onRequestClose={() => setShowHelpModal(false)}
+        >
+          <View style={{ flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.5)', justifyContent: 'flex-end' }}>
+            <View style={{ backgroundColor: '#ffffff', borderTopLeftRadius: 28, borderTopRightRadius: 28, maxHeight: '85%', padding: 24, paddingTop: 12 }}>
+              <View className="w-10 h-1.5 bg-neutral-200 rounded-full self-center mb-2" />
+
+              <View className="flex-row justify-between items-center pb-3 border-b border-neutral-100">
+                <View className="flex-row items-center gap-2">
+                  <PhoneCall size={20} color="#ff3b30" />
+                  <Text className="text-lg font-bold text-neutral-900 tracking-tight">
+                    Help &amp; Support
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  onPress={() => setShowHelpModal(false)}
+                  className="p-1.5 bg-neutral-100 rounded-full"
+                >
+                  <X size={16} color="#8e8e93" />
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView className="space-y-4 pt-3" showsVerticalScrollIndicator={false}>
+                {/* Coordinator support card */}
+                <View className="bg-rose-50/60 border border-rose-100 rounded-2xl p-4 space-y-3">
+                  <View className="flex-row items-center gap-3">
+                    <View className="w-10 h-10 rounded-xl bg-rose-100 items-center justify-center shrink-0">
+                      <User size={18} color="#e11d48" />
+                    </View>
+                    <View className="flex-1 pr-2">
+                      <Text className="text-sm font-bold text-neutral-900">
+                        Primary Care Coordinator
+                      </Text>
+                      <Text className="text-xs text-neutral-500 font-medium">
+                        {coordName} is managing your care circle
+                      </Text>
+                    </View>
+                  </View>
+
                   <TouchableOpacity
-                    testID="parent-consent-expiry-apply"
-                    disabled={consentBusy}
-                    onPress={handleSimulateExpiry}
-                    className="bg-amber-500 px-4 py-2.5 rounded-xl"
+                    onPress={() => {
+                      confirmAction(
+                        `Call ${coordName}`,
+                        `Would you like to initiate a call with ${coordName} now?`,
+                        () => context.showToast(`Connecting to ${coordName}...`)
+                      );
+                    }}
+                    className="w-full bg-[#ff3b30] py-3 rounded-xl flex-row items-center justify-center gap-2 shadow-xs"
                   >
-                    <Text className="text-white text-xs font-bold">Apply</Text>
+                    <Phone size={14} color="#ffffff" />
+                    <Text className="text-white text-xs font-bold">Call {coordName}</Text>
                   </TouchableOpacity>
                 </View>
-              </View>
 
-              {/* Revoke Consent (FAM-004) */}
-              <TouchableOpacity
-                testID="parent-consent-revoke"
-                disabled={consentBusy}
-                onPress={() => {
-                  confirmAction(
-                    'Revoke Consent',
-                    'Restricted data becomes inaccessible immediately. The revocation is written to audit_log.',
-                    handleRevokeConsent,
-                    'Revoke'
-                  );
-                }}
-                className="w-full bg-red-50 border border-red-200 py-3.5 rounded-xl flex-row items-center justify-center gap-2"
-              >
-                <ShieldAlert size={16} color="#dc2626" />
-                <Text className="text-red-700 text-xs font-bold">Revoke All Active Consents</Text>
-              </TouchableOpacity>
+                {/* Emergency response */}
+                <View className="bg-amber-50 border border-amber-200/80 rounded-2xl p-4 space-y-2">
+                  <View className="flex-row items-center gap-2">
+                    <ShieldAlert size={16} color="#d97706" />
+                    <Text className="text-xs font-black text-amber-900 uppercase tracking-wider">
+                      Emergency Helplines (24/7)
+                    </Text>
+                  </View>
+                  <Text className="text-xs text-amber-800 leading-relaxed font-medium">
+                    In case of acute chest discomfort, shortness of breath, or emergency, dial immediately:
+                  </Text>
+                  <View className="flex-row gap-2 pt-1">
+                    <TouchableOpacity
+                      onPress={() => {
+                        confirmAction(
+                          'Dial 108 Emergency',
+                          'Confirm dialing 108 Ambulance service?',
+                          () => context.showToast('Calling 108 Emergency...')
+                        );
+                      }}
+                      className="flex-1 bg-amber-500 py-2.5 rounded-xl items-center justify-center"
+                    >
+                      <Text className="text-white text-xs font-bold">Dial 108 (Ambulance)</Text>
+                    </TouchableOpacity>
 
-              <TouchableOpacity
-                onPress={() => setShowPrivacyModal(false)}
-                className="w-full bg-[#007aff] py-3.5 rounded-xl items-center justify-center mt-3 active:opacity-90"
-              >
-                <Text className="text-white text-xs font-bold">Close Permissions</Text>
-              </TouchableOpacity>
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
+                    <TouchableOpacity
+                      onPress={() => {
+                        confirmAction(
+                          'Dial 112 Helpline',
+                          'Confirm dialing 112 National Emergency?',
+                          () => context.showToast('Calling 112 Helpline...')
+                        );
+                      }}
+                      className="flex-1 bg-amber-600 py-2.5 rounded-xl items-center justify-center"
+                    >
+                      <Text className="text-white text-xs font-bold">Dial 112 (National)</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
 
-      {/* Parent Role & Greeting Title Modal */}
-      <Modal
-        visible={showRoleModal}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setShowRoleModal(false)}
-      >
-        <View className="flex-1 bg-black/50 justify-end">
-          <View className="bg-white rounded-t-[28px] max-h-[85%] p-6 pt-3 space-y-4 shadow-xl">
-            {/* Grabber Handle */}
-            <View className="w-10 h-1.5 bg-neutral-200 rounded-full self-center mb-1.5" />
-
-            <View className="flex-row justify-between items-center pb-2 border-b border-neutral-100">
-              <View className="flex-row items-center gap-2">
-                <User size={18} color="#10b981" />
-                <Text className="text-lg font-bold text-neutral-900 tracking-tight">
-                  Select Parent Title
-                </Text>
-              </View>
-              <TouchableOpacity
-                onPress={() => setShowRoleModal(false)}
-                className="p-1.5 bg-neutral-100 rounded-full"
-              >
-                <X size={16} color="#8e8e93" />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView className="space-y-3">
-              <Text className="text-xs text-neutral-400 font-semibold uppercase tracking-wider">
-                How should KinGuardian address you?
-              </Text>
-
-              {[
-                { role: 'Mother', label: 'Mother (Mom)', example: '“Good morning, Mom ❤️”' },
-                { role: 'Father', label: 'Father (Dad)', example: '“Good morning, Dad ❤️”' },
-                { role: 'Parent', label: 'Personal Name', example: `“Good morning, ${context?.currentUser?.name?.split(' ')[0] || 'Parent'} ❤️”` }
-              ].map((item) => {
-                const currentRel = context?.currentUser?.relation || 'Parent';
-                const isSelected =
-                  item.role === 'Mother'
-                    ? currentRel === 'Mother' || currentRel === 'Mom'
-                    : item.role === 'Father'
-                    ? currentRel === 'Father' || currentRel === 'Dad'
-                    : currentRel !== 'Mother' && currentRel !== 'Mom' && currentRel !== 'Father' && currentRel !== 'Dad';
-
-                return (
-                  <TouchableOpacity
-                    key={item.role}
-                    onPress={() => handleUpdateRole(item.role)}
-                    className={`p-4 rounded-2xl border flex-row items-center justify-between ${
-                      isSelected
-                        ? 'border-emerald-500 bg-emerald-50/60'
-                        : 'border-neutral-200 bg-neutral-50/50'
-                    }`}
-                  >
-                    <View>
-                      <Text className={`text-sm font-bold ${isSelected ? 'text-emerald-700' : 'text-neutral-800'}`}>
-                        {item.label}
+                {/* AI Assistant shortcut */}
+                <TouchableOpacity
+                  onPress={() => {
+                    setShowHelpModal(false);
+                    router.push('/(parent)/ask');
+                  }}
+                  className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 flex-row items-center justify-between"
+                >
+                  <View className="flex-row items-center gap-3 flex-1 pr-2">
+                    <View className="w-10 h-10 rounded-xl bg-emerald-100 items-center justify-center shrink-0">
+                      <MessageCircle size={18} color="#059669" />
+                    </View>
+                    <View className="flex-1">
+                      <Text className="text-xs font-bold text-neutral-800">
+                        Ask KinGuardian Medical AI
                       </Text>
-                      <Text className="text-xs text-neutral-500 font-medium mt-0.5">
-                        {item.example}
+                      <Text className="text-[10px] text-neutral-500 font-medium">
+                        Questions about tonight's doses or symptoms
                       </Text>
                     </View>
-                    {isSelected && (
-                      <View className="w-6 h-6 rounded-full bg-emerald-600 items-center justify-center">
-                        <CheckCircle2 size={16} color="#ffffff" />
-                      </View>
-                    )}
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Language Selection Modal (TEST UX-003) */}
-      <Modal
-        visible={showLanguageModal}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setShowLanguageModal(false)}
-      >
-        <View className="flex-1 bg-black/50 justify-end">
-          <View className="bg-white rounded-t-[28px] max-h-[85%] p-6 pt-3 space-y-4 shadow-xl">
-            {/* Grabber Handle */}
-            <View className="w-10 h-1.5 bg-neutral-200 rounded-full self-center mb-1.5" />
-
-            {/* Header */}
-            <View className="flex-row justify-between items-center pb-2 border-b border-neutral-100">
-              <View className="flex-row items-center gap-2">
-                <Globe size={18} color="#007aff" />
-                <Text className="text-lg font-bold text-neutral-900 tracking-tight">
-                  Choose Language / மொழி தேர்வு
-                </Text>
-              </View>
-              <TouchableOpacity
-                onPress={() => setShowLanguageModal(false)}
-                className="p-1.5 bg-neutral-100 rounded-full"
-              >
-                <X size={16} color="#8e8e93" />
-              </TouchableOpacity>
+                  </View>
+                  <ChevronRight size={14} color="#059669" />
+                </TouchableOpacity>
+              </ScrollView>
             </View>
-
-            <ScrollView className="space-y-3">
-              <Text className="text-xs text-neutral-400 font-semibold uppercase tracking-wider">
-                Select App Language
-              </Text>
-
-              {[
-                { code: 'en', label: 'English', native: 'English (US)' },
-                { code: 'ta', label: 'Tamil', native: 'தமிழ் (Tamil)' },
-                { code: 'hi', label: 'Hindi', native: 'हिन्दी (Hindi)' },
-              ].map((lang) => {
-                const isSelected = selectedLang === lang.code;
-                return (
-                  <TouchableOpacity
-                    key={lang.code}
-                    onPress={async () => {
-                      setSelectedLang(lang.code);
-                      setLanguage(lang.code);
-                      try {
-                        await realDataService.updateUserLanguage(lang.code);
-                      } catch (err) {
-                        console.warn('Could not persist language to DB:', err);
-                      }
-                      if (lang.code === 'ta') {
-                        context.showToast('மொழி தமிழாக மாற்றப்பட்டது (Language changed to Tamil)');
-                      } else {
-                        context.showToast(`Language switched to ${lang.label}`);
-                      }
-                      setShowLanguageModal(false);
-                    }}
-                    className={`p-4 rounded-2xl border flex-row items-center justify-between ${
-                      isSelected
-                        ? 'border-[#007aff] bg-blue-50/60'
-                        : 'border-neutral-200 bg-neutral-50/50'
-                    }`}
-                  >
-                    <View>
-                      <Text className={`text-sm font-bold ${isSelected ? 'text-[#007aff]' : 'text-neutral-800'}`}>
-                        {lang.label}
-                      </Text>
-                      <Text className="text-xs text-neutral-500 font-medium mt-0.5">
-                        {lang.native}
-                      </Text>
-                    </View>
-                    {isSelected && (
-                      <View className="w-6 h-6 rounded-full bg-[#007aff] items-center justify-center">
-                        <CheckCircle2 size={16} color="#ffffff" />
-                      </View>
-                    )}
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
           </View>
-        </View>
-      </Modal>
+        </Modal>
+
+      </View>
 
       <SimulatorControls
         onTriggerNotification={context.handleTriggerSimulation}

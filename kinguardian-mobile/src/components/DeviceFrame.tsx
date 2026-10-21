@@ -30,9 +30,12 @@ export const DeviceFrame: React.FC<DeviceFrameProps> = ({ children }) => {
   // Set safe area background dynamically to match the color themes
   const bgStyle = appMode === 'parent' ? 'bg-[#fffbeb]' : 'bg-[#fdfbf7]';
 
-  const childrenArray = children as any;
-  const mainApp = Array.isArray(childrenArray) ? childrenArray[0] : children;
-  const simControls = Array.isArray(childrenArray) ? childrenArray[1] : null;
+  const childrenArray = React.Children.toArray(children);
+  const simControls = childrenArray.find(
+    (c: any) => c?.type?.name === 'SimulatorControls' || (c?.props && 'onTriggerNotification' in c.props)
+  );
+  const appChildren = childrenArray.filter((c) => c !== simControls);
+  const mainApp = appChildren.length === 1 ? appChildren[0] : <>{appChildren}</>;
 
   const isWeb = Platform.OS === 'web';
 
