@@ -93,8 +93,8 @@ export const BottomNavBar: React.FC<NavigationProps> = ({
 };
 
 interface ParentNavigationProps {
-  activeTab: 'home' | 'medicines' | 'ask' | 'profile';
-  onTabChange: (tab: 'home' | 'medicines' | 'ask' | 'profile') => void;
+  activeTab: 'home' | 'medicines' | 'ask' | 'family' | 'profile';
+  onTabChange: (tab: 'home' | 'medicines' | 'ask' | 'family' | 'profile') => void;
 }
 
 export const ParentBottomNavBar: React.FC<ParentNavigationProps> = ({ activeTab, onTabChange }) => {
@@ -142,7 +142,21 @@ export const ParentBottomNavBar: React.FC<ParentNavigationProps> = ({ activeTab,
         </Text>
       </TouchableOpacity>
 
-      {/* Tab 4: Profile */}
+      {/* Tab 4: Family */}
+      <TouchableOpacity
+        testID="parent-nav-family"
+        onPress={() => onTabChange('family')}
+        className="items-center justify-center py-1.5 w-14"
+      >
+        <Users size={20} color={activeTab === 'family' ? '#007aff' : '#8e8e93'} />
+        <Text
+          className={`text-[9px] font-semibold mt-1 ${activeTab === 'family' ? 'text-[#007aff]' : 'text-[#8e8e93]'}`}
+        >
+          Family
+        </Text>
+      </TouchableOpacity>
+
+      {/* Tab 5: Profile */}
       <TouchableOpacity
         testID="parent-nav-profile"
         onPress={() => onTabChange('profile')}

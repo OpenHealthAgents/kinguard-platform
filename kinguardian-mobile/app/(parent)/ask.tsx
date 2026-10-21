@@ -306,6 +306,7 @@ export default function ParentVoiceRoute() {
           onTabChange={(tab) => {
             if (tab === 'home') router.push('/(parent)');
             else if (tab === 'medicines') router.push('/(parent)/medicines');
+            else if (tab === 'family') router.push('/(parent)/family');
             else if (tab === 'profile') router.push('/(parent)/profile');
           }}
         />

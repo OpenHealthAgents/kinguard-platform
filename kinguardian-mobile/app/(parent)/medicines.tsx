@@ -158,8 +158,9 @@ export default function ParentMedicinesRoute() {
           activeTab="medicines"
           onTabChange={(tab) => {
             if (tab === 'home') router.push('/(parent)');
-            else if (tab === 'profile') router.push('/(parent)/profile');
             else if (tab === 'ask') router.push('/(parent)/ask');
+            else if (tab === 'family') router.push('/(parent)/family');
+            else if (tab === 'profile') router.push('/(parent)/profile');
           }}
         />
       </View>

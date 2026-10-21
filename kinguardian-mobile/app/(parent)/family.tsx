@@ -381,7 +381,7 @@ export default function ParentFamilyScreen() {
         </ScrollView>
 
         <ParentBottomNavBar
-          activeTab="profile"
+          activeTab="family"
           onTabChange={(tab) => {
             if (tab === 'home') router.push('/(parent)');
             else if (tab === 'medicines') router.push('/(parent)/medicines');
