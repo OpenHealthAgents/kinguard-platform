@@ -1,4 +1,4 @@
-import React, { useState, useContext, useEffect } from 'react';
+import React, { useState, useContext, useEffect, useRef } from 'react';
 import { AppState, View, Text, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
@@ -123,6 +123,7 @@ export const ParentModeDashboard: React.FC<ParentModeDashboardProps> = ({
     steps: 0
   });
 
+  const hasActiveConnectionRef = useRef(false);
   const [telemetry, setTelemetry] = useState(() => googleFitService.getLatestTelemetry());
 
   // Wearable Continuous Auto-Sync states
@@ -166,6 +167,8 @@ export const ParentModeDashboard: React.FC<ParentModeDashboardProps> = ({
           const activeConn = conns.status === 'fulfilled' && Array.isArray(conns.value)
             ? conns.value.find((c: any) => c.connection_status === 'connected' || c.connection_status === 'active')
             : null;
+
+          hasActiveConnectionRef.current = Boolean(activeConn);
 
           if (activeConn) {
             const provName = activeConn.provider === 'garmin'
@@ -245,7 +248,7 @@ export const ParentModeDashboard: React.FC<ParentModeDashboardProps> = ({
 
     const unsubscribe = googleFitService.subscribe((data) => {
       if (isMounted) {
-        if (data.isConnected) {
+        if (data.isConnected && hasActiveConnectionRef.current) {
           setTelemetry((prev) => ({
             ...data,
             steps: data.steps > 0 ? data.steps : prev.steps,
@@ -857,7 +860,7 @@ export const ParentModeDashboard: React.FC<ParentModeDashboardProps> = ({
                       <Text className={`text-[11px] font-bold ${telemetry.isConnected ? 'text-emerald-600' : 'text-slate-500'}`} numberOfLines={1}>
                         {telemetry.isConnected ? 'Live • Auto Synced' : 'Not Connected'}
                       </Text>
-                      {activeDevice.name && (
+                      {telemetry.isConnected && activeDevice.name && (
                         <Text className="text-[10px] text-slate-400 font-semibold" numberOfLines={1}>• {activeDevice.name}</Text>
                       )}
                     </View>
@@ -1010,7 +1013,7 @@ export const ParentModeDashboard: React.FC<ParentModeDashboardProps> = ({
           >
             <View className="flex-row items-center gap-3.5 flex-1 pr-2">
               <View className="w-12 h-12 rounded-3xl bg-indigo-50 border border-indigo-100 items-center justify-center shrink-0">
-                <Watch size={24} color="#2a14b4" />
+                <Watch size={24} color={telemetry.isConnected ? '#2a14b4' : '#64748b'} />
               </View>
               <View className="flex-1">
                 <View className="flex-row items-center gap-2 flex-wrap">
@@ -1021,12 +1024,14 @@ export const ParentModeDashboard: React.FC<ParentModeDashboardProps> = ({
                   </Text>
                 </View>
                 <Text className="text-xs text-neutral-400 font-medium mt-0.5" numberOfLines={1}>
-                  {activeDevice.steps ? `${activeDevice.steps.toLocaleString()} steps • ` : ''}{activeDevice.lastUpdated}
+                  {telemetry.isConnected && activeDevice.steps ? `${activeDevice.steps.toLocaleString()} steps • ` : ''}{activeDevice.lastUpdated}
                 </Text>
               </View>
             </View>
             <View className="flex-row items-center gap-1 shrink-0">
-              <Text className="text-xs font-bold text-[#007aff]">View</Text>
+              <Text className="text-xs font-bold text-[#007aff]">
+                {telemetry.isConnected ? 'View' : 'Connect'}
+              </Text>
               <ChevronRight size={14} color="#007aff" />
             </View>
           </TouchableOpacity>

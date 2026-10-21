@@ -1813,22 +1813,8 @@ async def sync_wearable_telemetry_route(
         ).order_by(WearableConnection.created_at.desc())
     )).scalars().first()
 
-    now = datetime.now(UTC)
-    if not conn:
-        conn = WearableConnection(
-            subject_id=resolved_subject_id,
-            provider=provider,
-            connection_status="connected",
-            device_type=f"{device_name} ({source_app})",
-            device_id=device_id,
-            source=provider,
-            last_sync_at=now,
-            sync_status="synced",
-            is_stale=False
-        )
-        session.add(conn)
-        await session.flush()
-    else:
+    # Only update sync status if the connection has not been explicitly disconnected
+    if conn and conn.connection_status != "disconnected":
         conn.connection_status = "connected"
         conn.disconnected_at = None
         conn.last_sync_at = now
@@ -2160,38 +2146,6 @@ async def list_wearable_connections(
     stmt = stmt.order_by(WearableConnection.created_at.desc())
 
     conns = (await session.execute(stmt)).scalars().all()
-
-    # If no connections exist, seed default connected devices for the target subject
-    if not conns and target_subject_id:
-        now = datetime.now(UTC)
-        fitbit_conn = WearableConnection(
-            subject_id=target_subject_id,
-            provider="fitbit",
-            connection_status="connected",
-            device_type="Fitbit Charge 6",
-            device_id="fitbit_charge_6",
-            source="fitbit",
-            last_sync_at=now,
-            sync_status="synced",
-            is_stale=False,
-            created_at=now
-        )
-        garmin_conn = WearableConnection(
-            subject_id=target_subject_id,
-            provider="garmin",
-            connection_status="connected",
-            device_type="Garmin Venu 3 (Slate Black)",
-            device_id="garmin_venu_3",
-            source="garmin",
-            last_sync_at=now,
-            sync_status="synced",
-            is_stale=False,
-            created_at=now
-        )
-        session.add(fitbit_conn)
-        session.add(garmin_conn)
-        await session.commit()
-        conns = [garmin_conn, fitbit_conn]
 
     return [
         {

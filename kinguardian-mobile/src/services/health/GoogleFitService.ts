@@ -244,7 +244,16 @@ class GoogleFitService {
   async disconnectGoogleFit(_subjectId?: string): Promise<boolean> {
     this.stopRealTimeStreaming();
     this.isConnected = false;
-    this.currentTelemetry.isConnected = false;
+    this.currentTelemetry = {
+      steps: 0,
+      heartRate: 0,
+      sleepMinutes: 0,
+      source: 'none',
+      isConnected: false,
+      lastUpdated: new Date(),
+      isStreaming: false,
+      provenance: 'No device connected'
+    };
     this.notifyListeners();
     return true;
   }

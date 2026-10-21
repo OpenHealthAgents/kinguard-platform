@@ -253,6 +253,9 @@ export const ParentDevicesScreen: React.FC<ParentDevicesScreenProps> = ({ onBack
           onPress: async () => {
             try {
               await realDataService.disconnectWearable(conn.id);
+              if (conn.provider === 'health_connect' || conn.provider === 'google_fit') {
+                await googleFitService.disconnectGoogleFit();
+              }
               await loadConnections();
             } catch {
               setConnections((prev) => prev.filter((c) => c.id !== conn.id));
