@@ -328,7 +328,7 @@ export default function ParentDocumentsRoute() {
     <DeviceFrame>
       <View className="flex-1 relative bg-[#f2f2f7]">
         {/* Header */}
-        <View className="bg-white pt-6 pb-5 px-6 border-b border-neutral-100 flex-row items-center justify-between">
+        <View className="bg-white pt-7 pb-6 px-6 border-b border-neutral-100 flex-row items-center justify-between">
           <View>
             <Text className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider">
               Share Records with {coordName}
@@ -347,11 +347,11 @@ export default function ParentDocumentsRoute() {
 
         <ScrollView
           className="flex-1"
-          contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 120, gap: 20 }}
+          contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: 120, gap: 28 }}
         >
           {!isUploaded ? (
-            <View className="space-y-5">
-              <View className="space-y-3">
+            <View className="space-y-7">
+              <View className="space-y-4">
                 <Text className="text-xs font-bold text-neutral-400 uppercase tracking-wider pl-1">
                   Choose document to send
                 </Text>
@@ -361,7 +361,7 @@ export default function ParentDocumentsRoute() {
                   onPress={handleTakePhoto}
                   testID="parent-documents-camera"
                   accessibilityLabel="Take photo of prescription"
-                  className="w-full bg-white border border-neutral-100 rounded-2xl p-5 flex-row items-center gap-4 shadow-sm active:scale-98"
+                  className="w-full bg-white border border-neutral-100 rounded-3xl p-5 flex-row items-center gap-4 shadow-sm active:scale-98"
                 >
                   <View className="w-12 h-12 bg-rose-50 rounded-2xl items-center justify-center border border-rose-100 shrink-0">
                     <Camera size={24} color="#ff3b30" />
@@ -379,7 +379,7 @@ export default function ParentDocumentsRoute() {
                   onPress={handleChooseGallery}
                   testID="parent-documents-gallery"
                   accessibilityLabel="Choose document from gallery"
-                  className="w-full bg-white border border-neutral-100 rounded-2xl p-5 flex-row items-center gap-4 shadow-sm active:scale-98"
+                  className="w-full bg-white border border-neutral-100 rounded-3xl p-5 flex-row items-center gap-4 shadow-sm active:scale-98"
                 >
                   <View className="w-12 h-12 bg-emerald-50 rounded-2xl items-center justify-center border border-emerald-100 shrink-0">
                     <ImageIcon size={24} color="#34c759" />
@@ -397,7 +397,7 @@ export default function ParentDocumentsRoute() {
                   onPress={() => setIsVoiceModalOpen(true)}
                   testID="parent-documents-voice"
                   accessibilityLabel="Record a voice note"
-                  className="w-full bg-white border border-neutral-100 rounded-2xl p-5 flex-row items-center gap-4 shadow-sm active:scale-98"
+                  className="w-full bg-white border border-neutral-100 rounded-3xl p-5 flex-row items-center gap-4 shadow-sm active:scale-98"
                 >
                   <View className="w-12 h-12 bg-purple-50 rounded-2xl items-center justify-center border border-purple-100 shrink-0">
                     <Mic size={24} color="#af52de" />
@@ -412,7 +412,7 @@ export default function ParentDocumentsRoute() {
               </View>
 
               {/* Uploaded Documents List */}
-              <View className="space-y-3 pt-2">
+              <View className="space-y-4 pt-3 border-t border-neutral-100">
                 <Text className="text-xs font-bold text-neutral-400 uppercase tracking-wider pl-1">
                   Uploaded Records & Prescriptions ({context.documents?.length || 0})
                 </Text>

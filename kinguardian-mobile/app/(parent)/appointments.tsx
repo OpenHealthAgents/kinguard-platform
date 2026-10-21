@@ -81,12 +81,12 @@ export default function AppointmentsRoute() {
     <DeviceFrame>
       <View className="flex-1 relative bg-[#f2f2f7]">
         {/* Header */}
-        <View className="bg-white pt-6 pb-5 px-6 border-b border-neutral-100 flex-row justify-between items-center">
+        <View className="bg-white pt-7 pb-6 px-6 border-b border-neutral-100 flex-row justify-between items-center">
           <View>
             <Text className="text-2xl font-bold text-neutral-900 tracking-tight">
               My Appointments
             </Text>
-            <Text className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider mt-0.5">
+            <Text className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider mt-1">
               {context.currentUser?.name ? `${context.currentUser.name}'s Clinic Schedule` : "Clinic Schedule"}
             </Text>
           </View>
@@ -95,7 +95,7 @@ export default function AppointmentsRoute() {
             onPress={() => setModalOpen(true)}
             testID="parent-appointments-add"
             accessibilityLabel="Add appointment"
-            className="flex-row items-center gap-1.5 bg-[#007aff] px-3.5 py-2 rounded-xl shadow-xs"
+            className="flex-row items-center gap-1.5 bg-[#007aff] px-4 py-2.5 rounded-xl shadow-xs"
           >
             <Plus size={14} color="#ffffff" strokeWidth={2.5} />
             <Text className="text-white text-xs font-bold">Add</Text>
@@ -104,7 +104,7 @@ export default function AppointmentsRoute() {
 
         <ScrollView
           className="flex-1"
-          contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 120, gap: 20 }}
+          contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: 120, gap: 24 }}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
@@ -149,7 +149,7 @@ export default function AppointmentsRoute() {
 
           {/* OFFLINE COPY INDICATOR BANNER (APT-006 requirement) */}
           {isOfflineCopy && (
-            <View className="bg-amber-50 border-2 border-amber-300 rounded-2xl p-4 shadow-xs space-y-2 mb-1">
+            <View className="bg-amber-50 border-2 border-amber-300 rounded-2xl p-5 shadow-xs space-y-2">
               <View className="flex-row items-center justify-between">
                 <View className="flex-row items-center gap-2">
                   <View className="w-6 h-6 rounded-full bg-amber-500 items-center justify-center">
@@ -174,7 +174,7 @@ export default function AppointmentsRoute() {
               key={appt.id}
               testID={`parent-appointments-item-${appt.id}`}
               accessibilityLabel={`Appointment with ${appt.doctorName}, ${appt.specialty}`}
-              className="bg-white rounded-2xl p-5 shadow-sm shadow-neutral-100 space-y-4 border-l-4 border-[#007aff]"
+              className="bg-white rounded-3xl p-6 shadow-sm shadow-neutral-100 space-y-5 border-l-4 border-[#007aff]"
             >
               <View className="flex-row justify-between items-start">
                 <View className="space-y-0.5">

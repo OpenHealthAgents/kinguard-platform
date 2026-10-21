@@ -132,7 +132,7 @@ export default function ParentVoiceRoute() {
     <DeviceFrame>
       <View className="flex-1 relative bg-[#f8fafc]">
         {/* Header */}
-        <View className="bg-white pt-5 pb-4 px-5 border-b border-slate-200">
+        <View className="bg-white pt-7 pb-5 px-6 border-b border-slate-200">
           <View className="flex-row items-center justify-between">
             <View>
               <View className="flex-row items-center gap-2">
@@ -141,20 +141,23 @@ export default function ParentVoiceRoute() {
                   <Text className="text-[10px] font-black text-emerald-800">Parent Voice & Chat</Text>
                 </View>
               </View>
-              <Text className="text-xs text-slate-500 font-medium mt-0.5">
+              <Text className="text-xs text-slate-500 font-medium mt-1">
                 Simple, parent-friendly medical assistant for {userName}
               </Text>
             </View>
-            <View className="w-9 h-9 rounded-full bg-emerald-50 items-center justify-center border border-emerald-100 shadow-xs">
+            <View className="w-10 h-10 rounded-full bg-emerald-50 items-center justify-center border border-emerald-100 shadow-xs">
               <Sparkles size={18} color="#059669" fill="#059669" />
             </View>
           </View>
         </View>
 
-        <ScrollView className="flex-1 px-4 pt-4 space-y-4">
+        <ScrollView
+          className="flex-1"
+          contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: 120, gap: 24 }}
+        >
 
           {/* Chat Response Display Area */}
-          <View className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs min-h-[130px] justify-center">
+          <View className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs min-h-[140px] justify-center">
             {recording ? (
               <View className="items-center space-y-2 py-4">
                 <Text className="text-base font-bold text-rose-600 animate-pulse">
@@ -170,7 +173,7 @@ export default function ParentVoiceRoute() {
                 </Text>
               </View>
             ) : transcript ? (
-              <View className="space-y-3">
+              <View className="space-y-3.5">
                 <View className="space-y-0.5">
                   <Text className="text-[10px] font-black text-slate-400 uppercase tracking-wider">
                     You Asked:
@@ -178,7 +181,7 @@ export default function ParentVoiceRoute() {
                   <Text className="text-sm font-bold text-slate-900">"{transcript}"</Text>
                 </View>
                 {aiReply && (
-                  <View testID="parent-ask-answer" accessibilityLabel="KinGuardian AI answer" className="pt-3 border-t border-slate-100 space-y-1.5">
+                  <View testID="parent-ask-answer" accessibilityLabel="KinGuardian AI answer" className="pt-3.5 border-t border-slate-100 space-y-2">
                     <View className="flex-row items-center gap-1.5">
                       <Sparkles size={13} color="#059669" fill="#059669" />
                       <Text className="text-[10px] font-black text-emerald-700 uppercase tracking-wider">
@@ -225,18 +228,18 @@ export default function ParentVoiceRoute() {
           </View>
 
           {/* Suggested Prompts List */}
-          <View className="space-y-2">
+          <View className="space-y-3">
             <Text className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">
               Quick Questions (Tap to Ask):
             </Text>
-            <View className="space-y-2">
+            <View style={{ gap: 12 }}>
               {promptExamples.map((item, idx) => (
                 <TouchableOpacity
                   key={idx}
                   onPress={() => handleSendQuery(item.text)}
-                  className="w-full bg-white border border-slate-200 p-3.5 rounded-xl flex-row items-center gap-3 active:scale-98 shadow-xs"
+                  className="w-full bg-white border border-slate-200 p-4 rounded-2xl flex-row items-center gap-3.5 active:scale-98 shadow-xs"
                 >
-                  <View className="w-8 h-8 rounded-lg bg-emerald-50 items-center justify-center border border-emerald-100">
+                  <View className="w-8 h-8 rounded-xl bg-emerald-50 items-center justify-center border border-emerald-100">
                     <Pill size={16} color="#059669" />
                   </View>
                   <View className="flex-1">
@@ -249,7 +252,7 @@ export default function ParentVoiceRoute() {
           </View>
 
           {/* Text Input Box */}
-          <View className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs space-y-3">
+          <View className="bg-white border border-slate-200 rounded-3xl p-5 shadow-xs space-y-3">
             <Text className="text-[10px] font-black text-slate-500 uppercase tracking-wide">
               Type your question
             </Text>
@@ -277,7 +280,7 @@ export default function ParentVoiceRoute() {
           </View>
 
           {/* Large Microphone Container */}
-          <View className="items-center py-3">
+          <View className="items-center py-4">
             <TouchableOpacity
               testID="parent-ask-mic"
               accessibilityLabel="Tap microphone to speak your question"

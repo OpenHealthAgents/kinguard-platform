@@ -376,7 +376,7 @@ export const ParentDevicesScreen: React.FC<ParentDevicesScreenProps> = ({ onBack
         </View>
       </View>
 
-      <View style={{ padding: 20, gap: 24 }}>
+      <View style={{ padding: 20, gap: 28 }}>
         {isLoading ? (
           <View className="py-12 items-center justify-center">
             <ActivityIndicator size="large" color="#007aff" />
@@ -388,7 +388,7 @@ export const ParentDevicesScreen: React.FC<ParentDevicesScreenProps> = ({ onBack
           <>
             {/* Multi-Device Provenance & Deduplication Note */}
             {hasMultipleDevices && (
-              <View className="bg-indigo-50 border border-indigo-100 rounded-2xl p-4 flex-row items-start gap-3">
+              <View className="bg-indigo-50 border border-indigo-100 rounded-3xl p-5 flex-row items-start gap-3">
                 <Info size={20} color="#4338ca" className="mt-0.5" />
                 <View className="flex-1">
                   <Text className="text-xs font-black text-indigo-950 uppercase tracking-wider mb-0.5">
@@ -402,8 +402,8 @@ export const ParentDevicesScreen: React.FC<ParentDevicesScreenProps> = ({ onBack
             )}
 
             {/* Today's Activity & Rest from wearable_data */}
-            <View className="bg-white rounded-3xl p-5 border border-slate-200 shadow-sm space-y-4">
-              <View className="flex-row items-center justify-between pb-3 border-b border-slate-100">
+            <View className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-5">
+              <View className="flex-row items-center justify-between pb-3.5 border-b border-slate-100">
                 <View className="flex-row items-center gap-2">
                   <View className="w-8 h-8 rounded-xl bg-indigo-50 items-center justify-center">
                     <Activity size={16} color="#2a14b4" />
@@ -419,7 +419,7 @@ export const ParentDevicesScreen: React.FC<ParentDevicesScreenProps> = ({ onBack
                   <TouchableOpacity
                     onPress={handleSyncNow}
                     disabled={isSyncing}
-                    className="bg-[#2a14b4] px-3 py-1.5 rounded-xl flex-row items-center gap-1.5 shadow-xs"
+                    className="bg-[#2a14b4] px-3.5 py-2 rounded-xl flex-row items-center gap-1.5 shadow-xs"
                   >
                     {isSyncing ? (
                       <ActivityIndicator size="small" color="#ffffff" />
@@ -440,7 +440,7 @@ export const ParentDevicesScreen: React.FC<ParentDevicesScreenProps> = ({ onBack
               {/* 3 Live Google Fit Metrics: Steps, Resting Heart Rate, Sleep Duration */}
               <View className="flex-row gap-3">
                 {/* Steps */}
-                <View className="flex-1 bg-slate-50 border border-slate-100 rounded-2xl p-3 items-center">
+                <View className="flex-1 bg-slate-50 border border-slate-100 rounded-2xl p-3.5 items-center">
                   <View className="flex-row items-center gap-1 mb-1">
                     <Flame size={12} color="#f97316" />
                     <Text className="text-[10px] font-bold text-slate-500 uppercase">Steps</Text>
@@ -455,7 +455,7 @@ export const ParentDevicesScreen: React.FC<ParentDevicesScreenProps> = ({ onBack
                 </View>
 
                 {/* Resting Heart Rate */}
-                <View className="flex-1 bg-slate-50 border border-slate-100 rounded-2xl p-3 items-center">
+                <View className="flex-1 bg-slate-50 border border-slate-100 rounded-2xl p-3.5 items-center">
                   <View className="flex-row items-center gap-1 mb-1">
                     <Heart size={12} color="#e11d48" />
                     <Text className="text-[10px] font-bold text-slate-500 uppercase">Resting HR</Text>
@@ -470,7 +470,7 @@ export const ParentDevicesScreen: React.FC<ParentDevicesScreenProps> = ({ onBack
                 </View>
 
                 {/* Sleep Duration */}
-                <View className="flex-1 bg-slate-50 border border-slate-100 rounded-2xl p-3 items-center">
+                <View className="flex-1 bg-slate-50 border border-slate-100 rounded-2xl p-3.5 items-center">
                   <View className="flex-row items-center gap-1 mb-1">
                     <Moon size={12} color="#6366f1" />
                     <Text className="text-[10px] font-bold text-slate-500 uppercase">Rest Sleep</Text>
@@ -490,7 +490,7 @@ export const ParentDevicesScreen: React.FC<ParentDevicesScreenProps> = ({ onBack
               </View>
 
               {/* Wearable Live Stream Status */}
-              <View className="pt-2 border-t border-slate-100 flex-row items-center justify-between">
+              <View className="pt-3 border-t border-slate-100 flex-row items-center justify-between">
                 <View className="flex-row items-center gap-2">
                   <View className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
                   <Text className="text-xs font-bold text-emerald-800">
@@ -505,6 +505,7 @@ export const ParentDevicesScreen: React.FC<ParentDevicesScreenProps> = ({ onBack
             </View>
 
             {/* List of Connected Devices */}
+            <View style={{ gap: 20 }}>
             {activeConnections.map((conn) => {
               const displayName = getProviderDisplayName(conn.provider);
               const isStale = conn.is_stale || conn.sync_status === 'delayed' || conn.sync_status === 'stale_sync';
@@ -513,7 +514,7 @@ export const ParentDevicesScreen: React.FC<ParentDevicesScreenProps> = ({ onBack
                 <View
                   key={conn.id}
                   testID={`parent-device-connected-${conn.id}`}
-                  className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-5 mb-4"
+                  className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-5"
                 >
                   {/* Watch Header & Status */}
                   <View className="flex-row items-center justify-between">
@@ -607,6 +608,7 @@ export const ParentDevicesScreen: React.FC<ParentDevicesScreenProps> = ({ onBack
                 </View>
               );
             })}
+            </View>
           </>
         ) : (
           <View className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm items-center py-8 space-y-4">

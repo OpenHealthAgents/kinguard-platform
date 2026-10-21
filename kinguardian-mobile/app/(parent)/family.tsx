@@ -148,11 +148,11 @@ export default function ParentFamilyScreen() {
     <DeviceFrame>
       <View className="flex-1 bg-[#f2f2f7]">
         {/* Header */}
-        <View className="bg-white pt-6 pb-4 px-6 border-b border-neutral-100 flex-row items-center justify-between">
+        <View className="bg-white pt-7 pb-5 px-6 border-b border-neutral-100 flex-row items-center justify-between">
           <View className="flex-row items-center gap-3">
             <TouchableOpacity
               onPress={() => router.back()}
-              className="p-1 bg-neutral-100 rounded-full active:scale-90"
+              className="p-1.5 bg-neutral-100 rounded-full active:scale-90"
             >
               <ArrowLeft size={18} color="#8e8e93" />
             </TouchableOpacity>
@@ -176,7 +176,7 @@ export default function ParentFamilyScreen() {
 
         <ScrollView
           className="flex-1"
-          contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 120, gap: 20 }}
+          contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: 120, gap: 28 }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         >
           {loading ? (
@@ -189,9 +189,9 @@ export default function ParentFamilyScreen() {
           ) : (
             <>
               {/* Primary Membership Verification Card */}
-              <View className="bg-white rounded-2xl p-5 border border-neutral-100 shadow-sm space-y-4">
+              <View className="bg-white rounded-3xl p-6 border border-neutral-100 shadow-sm space-y-5">
                 <View className="flex-row items-start justify-between">
-                  <View className="flex-row items-center gap-3">
+                  <View className="flex-row items-center gap-3.5">
                     <View className="w-12 h-12 rounded-2xl bg-[#eff6ff] items-center justify-center">
                       <ShieldCheck size={26} color="#007aff" />
                     </View>
@@ -199,7 +199,7 @@ export default function ParentFamilyScreen() {
                       <Text className="text-base font-bold text-neutral-900 leading-tight">
                         {familyName}
                       </Text>
-                      <Text className="text-xs text-neutral-500 font-medium mt-0.5">
+                      <Text className="text-xs text-neutral-500 font-medium mt-1">
                         Connected Care Network
                       </Text>
                     </View>
@@ -213,7 +213,7 @@ export default function ParentFamilyScreen() {
                 </View>
 
                 {/* Verified Attributes Pill Matrix */}
-                <View className="bg-neutral-50 rounded-xl p-3.5 space-y-2 border border-neutral-100">
+                <View className="bg-neutral-50 rounded-2xl p-4 space-y-2.5 border border-neutral-100">
                   <View className="flex-row items-center justify-between">
                     <Text className="text-xs font-semibold text-neutral-500">Membership Role</Text>
                     <View className="bg-blue-100/80 px-2.5 py-0.5 rounded-full">
@@ -247,7 +247,7 @@ export default function ParentFamilyScreen() {
               </View>
 
               {/* Care Grants & Permissions Matrix */}
-              <View className="space-y-3">
+              <View className="space-y-4">
                 <View className="flex-row items-center justify-between px-1">
                   <Text className="text-xs font-bold uppercase text-neutral-400 tracking-wider">
                     Authorized Care Access Grants
@@ -257,7 +257,7 @@ export default function ParentFamilyScreen() {
                   </Text>
                 </View>
 
-                <View className="bg-white rounded-2xl border border-neutral-100 shadow-sm divide-y divide-neutral-100 overflow-hidden">
+                <View className="bg-white rounded-3xl border border-neutral-100 shadow-sm divide-y divide-neutral-100 overflow-hidden">
                   {careScopesList.map((item) => {
                     const IconComp = item.icon;
                     const isGranted =
@@ -296,12 +296,12 @@ export default function ParentFamilyScreen() {
               </View>
 
               {/* Members in this Circle */}
-              <View className="space-y-3">
+              <View className="space-y-4">
                 <Text className="text-xs font-bold uppercase text-neutral-400 tracking-wider px-1">
                   Circle Members
                 </Text>
 
-                <View className="bg-white rounded-2xl border border-neutral-100 shadow-sm divide-y divide-neutral-100 overflow-hidden">
+                <View className="bg-white rounded-3xl border border-neutral-100 shadow-sm divide-y divide-neutral-100 overflow-hidden">
                   {verifData?.familyMembers && verifData.familyMembers.length > 0 ? (
                     verifData.familyMembers.map((m) => (
                       <View key={m.id} className="p-4 flex-row items-center justify-between">

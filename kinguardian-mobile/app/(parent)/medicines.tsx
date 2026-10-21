@@ -25,7 +25,7 @@ export default function ParentMedicinesRoute() {
     <DeviceFrame>
       <View className="flex-1 relative bg-[#f2f2f7]">
         {/* Header */}
-        <View className="bg-white pt-6 pb-5 px-6 border-b border-neutral-100 space-y-0.5">
+        <View className="bg-white pt-7 pb-6 px-6 border-b border-neutral-100 space-y-1">
           <Text className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider">
             {context.currentUser?.name ? `${userName}'s Daily Checklist` : "Daily Medication Checklist"}
           </Text>
@@ -41,10 +41,10 @@ export default function ParentMedicinesRoute() {
         <ScrollView
           testID="parent-medicines-list"
           className="flex-1"
-          contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 120, gap: 20 }}
+          contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: 120, gap: 24 }}
         >
           {userMeds.some((m) => m.id === 'rec-5' && m.status !== 'taken') && (
-            <View className="bg-orange-50 border border-orange-100/50 rounded-2xl p-4 mb-1.5 shadow-sm">
+            <View className="bg-orange-50 border border-orange-100/50 rounded-2xl p-5 shadow-sm">
               <Text className="text-sm font-bold text-neutral-800">
                 {context.notifications.some(
                   (n) => n.recipient === 'parent' && n.category === 'medication_reminder' && !n.read
@@ -52,7 +52,7 @@ export default function ParentMedicinesRoute() {
                   ? `${coordName} sent you a reminder.`
                   : 'Did you take your evening medicine?'}
               </Text>
-              <Text className="text-xs text-neutral-500 font-semibold leading-relaxed mt-1">
+              <Text className="text-xs text-neutral-500 font-semibold leading-relaxed mt-1.5">
                 {context.notifications.some(
                   (n) => n.recipient === 'parent' && n.category === 'medication_reminder' && !n.read
                 )
@@ -62,7 +62,7 @@ export default function ParentMedicinesRoute() {
             </View>
           )}
 
-          <View style={{ gap: 16 }}>
+          <View style={{ gap: 20 }}>
             {userMeds.length === 0 ? (
               <View
                 testID="parent-medicines-empty"
@@ -82,7 +82,7 @@ export default function ParentMedicinesRoute() {
                   key={med.id}
                   testID={`parent-medicines-item-${med.id}`}
                   accessibilityLabel={`${med.name} ${med.dose} scheduled at ${med.scheduledTime}, ${isTaken ? 'taken' : 'upcoming'}`}
-                  className={`bg-white rounded-2xl p-5 shadow-sm shadow-neutral-100 space-y-4 border-l-4 mb-4 ${
+                  className={`bg-white rounded-2xl p-6 shadow-sm shadow-neutral-100 space-y-4 border-l-4 ${
                     isTaken ? 'border-[#34c759]' : 'border-[#ff9500]'
                   }`}
                 >

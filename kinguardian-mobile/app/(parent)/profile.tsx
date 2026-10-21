@@ -266,7 +266,7 @@ export default function ParentProfileRoute() {
     <DeviceFrame>
       <View className="flex-1 relative bg-[#f2f2f7]">
         {/* Header */}
-        <View className="bg-white pt-6 pb-5 px-6 border-b border-neutral-100 space-y-1">
+        <View className="bg-white pt-7 pb-6 px-6 border-b border-neutral-100 space-y-1">
           <Text className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider">
             Settings Console
           </Text>
@@ -275,11 +275,11 @@ export default function ParentProfileRoute() {
 
         <ScrollView
           className="flex-1"
-          contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 120, gap: 20 }}
+          contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: 120, gap: 24 }}
           showsVerticalScrollIndicator={false}
         >
           {/* Options List - Separated Cards with Proper Spacing */}
-          <View style={{ gap: 12 }} className="mb-4">
+          <View style={{ gap: 16 }}>
             {profileOptions.map((opt, idx) => {
               const IconComponent = opt.icon;
               return (
@@ -300,7 +300,7 @@ export default function ParentProfileRoute() {
                       context.showToast(`Opening ${opt.title}...`);
                     }
                   }}
-                  className="p-4 rounded-2xl border border-neutral-100 bg-white flex-row items-center justify-between shadow-2xs active:bg-neutral-50 mb-2.5"
+                  className="p-5 rounded-3xl border border-neutral-100 bg-white flex-row items-center justify-between shadow-2xs active:bg-neutral-50"
                 >
                   <View className="flex-row items-center gap-4 flex-1 pr-2">
                     <View
@@ -334,7 +334,7 @@ export default function ParentProfileRoute() {
                 'Log Out'
               );
             }}
-            className="p-4 rounded-2xl border border-red-100 bg-white flex-row items-center justify-center gap-2 active:bg-red-50 mb-6 shadow-2xs"
+            className="w-full bg-rose-50 border border-rose-200/80 rounded-2xl py-4 flex-row items-center justify-center gap-2 active:bg-rose-100 shadow-2xs mt-2"
           >
             <LogOut size={16} color="#ff3b30" />
             <Text className="text-xs font-bold text-[#ff3b30]">Log out</Text>

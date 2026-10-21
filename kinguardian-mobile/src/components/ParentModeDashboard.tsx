@@ -510,7 +510,7 @@ export const ParentModeDashboard: React.FC<ParentModeDashboardProps> = ({
         </View>
       </View>
 
-      <View style={{ padding: 20, gap: 24 }}>
+      <View style={{ padding: 20, gap: 28 }}>
         {context?.currentScenario === 'upcoming-appointment' && (
           <TouchableOpacity
             accessible={true}
@@ -804,7 +804,7 @@ export const ParentModeDashboard: React.FC<ParentModeDashboardProps> = ({
         )}
 
         {/* Section: Today's Activity & Rest (Continuous Auto-Sync) */}
-        <View className="space-y-2">
+        <View className="space-y-3">
           <View className="flex-row justify-between items-center px-1">
             <Text className="text-xs font-bold text-neutral-400 uppercase tracking-wider">
               Today's Activity & Rest
@@ -938,7 +938,7 @@ export const ParentModeDashboard: React.FC<ParentModeDashboardProps> = ({
         </View>
 
         {/* Section 2: Today's medicines */}
-        <View className="space-y-2" testID="parent-home-medicines-section">
+        <View className="space-y-3" testID="parent-home-medicines-section">
           <View className="flex-row justify-between items-center px-1">
             <Text className="text-xs font-bold text-neutral-400 uppercase tracking-wider">
               Today's medicines
@@ -951,7 +951,7 @@ export const ParentModeDashboard: React.FC<ParentModeDashboardProps> = ({
             </TouchableOpacity>
           </View>
 
-          <View style={{ gap: 12 }}>
+          <View style={{ gap: 14 }}>
             {activeMedicationsList.length > 0 ? (
               activeMedicationsList.slice(0, 3).map((med: any) => {
                 const medId = med.id || med.medication_ref || med.name || med.title;
@@ -967,7 +967,7 @@ export const ParentModeDashboard: React.FC<ParentModeDashboardProps> = ({
                     key={medId}
                     testID={`parent-home-medication-${medId}`}
                     onPress={() => router.push('/(parent)/medicines')}
-                    className={`bg-white rounded-3xl p-4 flex-row items-center justify-between shadow-lg shadow-neutral-100 active:scale-98 border-l-4 mb-3 ${
+                    className={`bg-white rounded-3xl p-4 flex-row items-center justify-between shadow-lg shadow-neutral-100 active:scale-98 border-l-4 ${
                       isTaken ? 'border-[#34c759]' : 'border-[#ff9500]'
                     }`}
                   >
@@ -998,13 +998,13 @@ export const ParentModeDashboard: React.FC<ParentModeDashboardProps> = ({
         </View>
 
         {/* Section: My health devices */}
-        <View className="space-y-2">
+        <View className="space-y-3">
           <Text className="text-xs font-bold text-neutral-400 uppercase tracking-wider px-1">
             My health devices
           </Text>
           <TouchableOpacity
             onPress={() => router.push('/(parent)/devices')}
-            className="bg-white rounded-3xl p-4.5 shadow-lg shadow-neutral-100 flex-row items-center justify-between active:scale-98 border border-neutral-100"
+            className="bg-white rounded-3xl p-5 shadow-lg shadow-neutral-100 flex-row items-center justify-between active:scale-98 border border-neutral-100"
           >
             <View className="flex-row items-center gap-3.5">
               <View className="w-12 h-12 rounded-3xl bg-indigo-50 border border-indigo-100 items-center justify-center">
@@ -1031,7 +1031,7 @@ export const ParentModeDashboard: React.FC<ParentModeDashboardProps> = ({
         </View>
 
         {/* Section: Doctor Appointments */}
-        <View className="space-y-2" testID="parent-home-appointments-section">
+        <View className="space-y-3" testID="parent-home-appointments-section">
           <View className="flex-row justify-between items-center px-1">
             <Text className="text-xs font-bold text-neutral-400 uppercase tracking-wider">
               Doctor Appointments
@@ -1048,7 +1048,7 @@ export const ParentModeDashboard: React.FC<ParentModeDashboardProps> = ({
             <TouchableOpacity
               testID="parent-home-appointment-card"
               onPress={() => router.push('/(parent)/appointments')}
-              className="bg-white rounded-3xl p-4.5 shadow-lg shadow-neutral-100 space-y-3 border-l-4 border-[#007aff] active:scale-98"
+              className="bg-white rounded-3xl p-5 shadow-lg shadow-neutral-100 space-y-3.5 border-l-4 border-[#007aff] active:scale-98"
             >
               <View className="flex-row items-center justify-between">
                 <View className="flex-row items-center gap-3.5 flex-1 pr-2">
@@ -1108,7 +1108,7 @@ export const ParentModeDashboard: React.FC<ParentModeDashboardProps> = ({
         </View>
 
         {/* Section: Documents */}
-        <View className="space-y-2" testID="parent-home-documents-section">
+        <View className="space-y-3" testID="parent-home-documents-section">
           <View className="flex-row justify-between items-center px-1">
             <Text className="text-xs font-bold text-neutral-400 uppercase tracking-wider">
               Documents
@@ -1124,7 +1124,7 @@ export const ParentModeDashboard: React.FC<ParentModeDashboardProps> = ({
           <TouchableOpacity
             testID="parent-home-documents-card"
             onPress={() => router.push('/(parent)/documents')}
-            className="bg-white rounded-3xl p-4.5 shadow-lg shadow-neutral-100 active:scale-98 border-l-4 border-[#ff9500]"
+            className="bg-white rounded-3xl p-5 shadow-lg shadow-neutral-100 active:scale-98 border-l-4 border-[#ff9500]"
           >
             <View className="flex-row items-center justify-between">
               <View className="flex-row items-center gap-3.5 flex-1 pr-2">
