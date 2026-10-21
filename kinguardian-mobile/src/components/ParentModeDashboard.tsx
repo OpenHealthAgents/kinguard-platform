@@ -60,6 +60,13 @@ export const ParentModeDashboard: React.FC<ParentModeDashboardProps> = ({
   const context = useContext(AppContext);
   const coordName = context?.coordinatorName || 'Coordinator';
   const parentName = context?.currentUser?.name || 'Parent';
+  const coordLocation = context?.coordinatorLocation || '';
+
+  const isSamePerson =
+    coordName.toLowerCase().trim() === parentName.toLowerCase().trim() ||
+    coordName.toLowerCase() === 'parent';
+  const displayCoordName = isSamePerson ? 'Family Care Circle' : coordName;
+  const displayCoordLocation = coordLocation && coordLocation !== 'Not provided' ? coordLocation : '';
 
   const getParentGreeting = () => {
     const hour = new Date().getHours();
@@ -96,7 +103,6 @@ export const ParentModeDashboard: React.FC<ParentModeDashboardProps> = ({
   const [dynamicMeds, setDynamicMeds] = useState<any[]>(initialMedications || []);
   const [dynamicAppointments, setDynamicAppointments] = useState<any[]>(initialAppointments || []);
   const [confirmedMedIds, setConfirmedMedIds] = useState<string[]>([]);
-  const [parentSummary, setParentSummary] = useState<any>(null);
 
   // Check-in state variables
   const [step, setStep] = useState<1 | 2 | 3>(1);
@@ -138,16 +144,30 @@ export const ParentModeDashboard: React.FC<ParentModeDashboardProps> = ({
     // Load initial device connections, dynamic medications, appointments, and summary from backend
     const loadInitialState = async () => {
       try {
-        const [conns, summary, medsRes, apptsRes, checkinsRes, parentSumRes] = await Promise.allSettled([
+        const [conns, summary, medsRes, apptsRes, checkinsRes, membersRes] = await Promise.allSettled([
           realDataService.getWearableConnections(resolvedId),
           realDataService.getWearableHealthSummary(resolvedId),
           realDataService.getSubjectMedications(resolvedId),
           realDataService.getAppointments(targetFamilyId, resolvedId),
           realDataService.getCheckIns(targetFamilyId, resolvedId),
-          realDataService.getParentSummary(resolvedId)
+          targetFamilyId ? realDataService.getFamilyMembers(targetFamilyId) : Promise.resolve([])
         ]);
 
         if (isMounted) {
+          if (membersRes.status === 'fulfilled' && Array.isArray(membersRes.value) && membersRes.value.length > 0) {
+            const coord = membersRes.value.find((m: any) => m.role === 'coordinator');
+            if (coord) {
+              const rawName = coord.display_name || (coord as any).name || (coord.email ? coord.email.split('@')[0] : '');
+              if (rawName && context?.setCoordinatorName) {
+                const cleanName = rawName.replace(/\s*\(coordinator\)/i, '').trim() || rawName.trim();
+                context.setCoordinatorName(cleanName);
+              }
+              const loc = (coord as any).city || (coord as any).location || ((coord as any).timezone && (coord as any).timezone.includes('/') ? (coord as any).timezone.split('/').pop()?.replace(/_/g, ' ') : '');
+              if (loc && loc !== 'Not provided' && context?.setCoordinatorLocation) {
+                context.setCoordinatorLocation(loc);
+              }
+            }
+          }
           if (medsRes.status === 'fulfilled' && medsRes.value?.medications && medsRes.value.medications.length > 0) {
             setDynamicMeds(medsRes.value.medications);
           }
@@ -159,9 +179,6 @@ export const ParentModeDashboard: React.FC<ParentModeDashboardProps> = ({
             if (latest?.occurred_at) {
               setLastCheckInAt(latest.occurred_at);
             }
-          }
-          if (parentSumRes.status === 'fulfilled' && parentSumRes.value && !parentSumRes.value.error) {
-            setParentSummary(parentSumRes.value);
           }
 
           const activeConn = conns.status === 'fulfilled' && Array.isArray(conns.value)
@@ -491,7 +508,7 @@ export const ParentModeDashboard: React.FC<ParentModeDashboardProps> = ({
             {getParentGreeting()}
           </Text>
           <Text className="text-sm text-slate-500 mt-1" numberOfLines={1}>
-            Connected with {coordName}{parentSummary?.demographics?.location ? ` • ${parentSummary.demographics.location}` : ''}
+            Connected with {displayCoordName}{displayCoordLocation ? ` • ${displayCoordLocation}` : ''}
           </Text>
         </View>
         <View className="flex-row items-center gap-3 shrink-0">

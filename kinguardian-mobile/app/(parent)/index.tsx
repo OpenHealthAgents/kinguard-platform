@@ -131,6 +131,10 @@ export default function ParentDashboardRoute() {
                   const cleanName = rawName.replace(/\s*\(coordinator\)/i, '').trim() || rawName.trim();
                   context.setCoordinatorName(cleanName);
                 }
+                const loc = (coord as any).city || (coord as any).location || ((coord as any).timezone && (coord as any).timezone.includes('/') ? (coord as any).timezone.split('/').pop()?.replace(/_/g, ' ') : '');
+                if (loc && loc !== 'Not provided' && context?.setCoordinatorLocation) {
+                  context.setCoordinatorLocation(loc);
+                }
               }
               
               // Set family name

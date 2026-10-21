@@ -156,14 +156,20 @@ const DEFAULT_AI_INSIGHTS: AIInsight[] = [
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUserState] = useState<DemoUser>(DEMO_USERS[0]);
   const [coordinatorName, setCoordinatorName] = useState<string>('Coordinator');
+  const [coordinatorLocation, setCoordinatorLocation] = useState<string>('London, UK');
   const [familyName, setFamilyName] = useState<string>('Family Circle');
   const [demoUsers, setDemoUsers] = useState<DemoUser[]>(DEMO_USERS);
 
   const setCurrentUser = (user: DemoUser) => {
     setCurrentUserState(user);
-    if (user.role === 'coordinator' && user.name) {
-      const clean = user.name.replace(/\s*\(coordinator\)/i, '').trim() || user.name.trim();
-      setCoordinatorName(clean);
+    if (user.role === 'coordinator') {
+      if (user.name) {
+        const clean = user.name.replace(/\s*\(coordinator\)/i, '').trim() || user.name.trim();
+        setCoordinatorName(clean);
+      }
+      if (user.location) {
+        setCoordinatorLocation(user.location);
+      }
     }
   };
 
@@ -554,9 +560,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           const rawName = coord.display_name || coord.name || coord.email.split('@')[0];
           const cleanName = rawName.replace(/\s*\(coordinator\)/i, '').replace(/Sync\s*\d+/i, '').trim() || rawName.trim();
           setCoordinatorName(cleanName);
+          const loc = coord.city || coord.location || (coord.timezone && coord.timezone.includes('/') ? coord.timezone.split('/').pop()?.replace(/_/g, ' ') : '');
+          if (loc && loc !== 'Not provided') {
+            setCoordinatorLocation(loc);
+          }
         } else if (session?.user?.role === 'coordinator') {
           const cleanName = session.user.displayName?.replace(/\s*\(coordinator\)/i, '').replace(/Sync\s*\d+/i, '').trim() || (session.user.email ? session.user.email.split('@')[0] : 'Coordinator');
           setCoordinatorName(cleanName);
+          const loc = session.user.city || (session.user as any).location || (session.user.timezone && session.user.timezone.includes('/') ? session.user.timezone.split('/').pop()?.replace(/_/g, ' ') : '');
+          if (loc && loc !== 'Not provided') {
+            setCoordinatorLocation(loc);
+          }
         } else {
           setCoordinatorName('Coordinator');
         }
@@ -1863,6 +1877,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         switchDemoUser,
         coordinatorName,
         setCoordinatorName,
+        coordinatorLocation,
+        setCoordinatorLocation,
         familyName,
         setFamilyName,
         appMode,

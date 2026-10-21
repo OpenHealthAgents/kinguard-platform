@@ -87,6 +87,8 @@ export interface AppContextType {
   switchDemoUser: (userId: string) => void;
   coordinatorName: string;
   setCoordinatorName: (name: string) => void;
+  coordinatorLocation: string;
+  setCoordinatorLocation: (location: string) => void;
   familyName: string;
   setFamilyName: (name: string) => void;
 
